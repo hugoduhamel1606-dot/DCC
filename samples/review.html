@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DCC — Review Spectra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --white:#fff;--bg:#f4f5f7;--bg2:#eaecef;
+  --border:#d0d3d9;--text:#1a1d23;--text2:#4a4f5c;--text3:#8a909e;
+  --blue:#1e5fa8;--blue2:#1a4f8c;--blue-light:#e8f0fa;
+  --green:#2e7d52;--orange:#c45c00;--red:#c0392b;
+  --font:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:var(--font);font-size:13px;background:var(--white);color:var(--text);overflow:hidden;}
+
+/* ── Shell ───────────────────────────────────────────────────── */
+#shell{display:flex;flex-direction:column;height:100vh;}
+#topbar{height:36px;background:var(--blue);display:flex;align-items:center;padding:0 12px;gap:10px;flex-shrink:0;}
+#topbar-title{font-size:13px;font-weight:500;color:#fff;}
+.tb-btn{padding:3px 10px;border:1px solid rgba(255,255,255,0.2);border-radius:3px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.85);cursor:pointer;font-size:11px;font-family:var(--font);}
+.tb-btn:hover{background:rgba(255,255,255,0.22);}
+
+/* ── Stats bar ───────────────────────────────────────────────── */
+#stats-bar{padding:3px 14px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);flex-shrink:0;display:flex;gap:14px;}
+
+/* ── Body ────────────────────────────────────────────────────── */
+#body{flex:1;display:flex;overflow:hidden;}
+
+/* ── Chart area ──────────────────────────────────────────────── */
+#chart-area{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;}
+#chart-label{padding:4px 12px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:11px;color:var(--text2);flex-shrink:0;}
+#chart-wrap{flex:1;position:relative;overflow:hidden;}
+#chart-wrap canvas{position:absolute;inset:0;cursor:crosshair;}
+#chart-wrap canvas#sel-cv{z-index:5;pointer-events:none;}
+#chart-hint{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.5);color:#fff;font-size:10px;padding:3px 7px;border-radius:3px;pointer-events:none;}
+
+/* ── Bottom bar ──────────────────────────────────────────────── */
+#btm{height:34px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:6px;flex-shrink:0;}
+.bbt{padding:4px 11px;border:1px solid var(--border);border-radius:3px;background:var(--white);color:var(--text2);cursor:pointer;font-size:12px;font-family:var(--font);}
+.bbt:hover{border-color:var(--blue);color:var(--blue);}
+.bbt.prim{background:var(--blue);border-color:var(--blue);color:#fff;}
+.bbt.prim:hover{background:var(--blue2);}
+.bbt.danger{color:var(--red);}
+.bbt.danger:hover{background:#fdecea;}
+
+/* ── Sidebar ─────────────────────────────────────────────────── */
+#sidebar{width:300px;background:var(--bg2);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+#sidebar-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.stab{flex:1;text-align:center;padding:7px;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;}
+.stab:hover{color:var(--text);}
+.stab.on{color:var(--blue);border-bottom-color:var(--blue);}
+
+/* ── Settings tab content ────────────────────────────────────── */
+#tab-settings{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.ss{padding:10px 12px;border-bottom:1px solid var(--border);}
+.ss-title{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;}
+.sf{margin-bottom:8px;}
+.sf label{display:block;font-size:10px;font-weight:500;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.3px;}
+.sf select,.sf input{width:100%;padding:4px 7px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:var(--white);color:var(--text);outline:none;font-family:var(--font);}
+.sf select:focus,.sf input:focus{border-color:var(--blue);}
+
+/* ── Per-parameter settings ──────────────────────────────────── */
+#param-tabs{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:10px;}
+.ptab{padding:3px 8px;font-size:11px;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:var(--white);color:var(--text2);transition:all 0.12s;}
+.ptab:hover{border-color:var(--blue);color:var(--blue);}
+.ptab.on{background:var(--blue);border-color:var(--blue);color:#fff;}
+.ptab.configured{border-color:var(--green);color:var(--green);}
+.ptab.configured.on{background:var(--green);border-color:var(--green);color:#fff;}
+
+/* ── Wavelength range rows ───────────────────────────────────── */
+.wl-row{display:flex;align-items:center;gap:4px;margin-bottom:5px;background:var(--white);border:1px solid var(--border);border-radius:3px;padding:4px 7px;}
+.wl-row input{width:58px;padding:3px 5px;border:1px solid var(--border);border-radius:3px;font-size:11px;outline:none;font-family:var(--mono);}
+.wl-row input:focus{border-color:var(--blue);}
+.wl-row span{color:var(--text3);font-size:11px;}
+.wl-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;padding:0 2px;line-height:1;}
+.wl-del:hover{color:#a93226;}
+.wl-color{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.btn-add-wl{font-size:11px;color:var(--blue);cursor:pointer;padding:3px 8px;border:1px solid rgba(30,95,168,0.4);border-radius:3px;background:none;}
+.btn-add-wl:hover{background:var(--blue-light);}
+
+/* ── Sample list tab ─────────────────────────────────────────── */
+#tab-samples{flex:1;overflow:hidden;display:none;flex-direction:column;}
+.sl-hd{padding:5px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg2);}
+.sl-mode{font-size:11px;border:1px solid var(--border);border-radius:3px;padding:2px 5px;outline:none;background:var(--white);}
+#sample-list{flex:1;overflow-y:auto;font-size:11px;}
+.sl-item{padding:4px 10px;border-bottom:1px solid var(--bg2);cursor:pointer;color:var(--text2);display:flex;align-items:center;gap:5px;}
+.sl-item:hover{background:var(--blue-light);}
+.sl-item.sel{background:#d6e4f7;color:var(--blue);}
+.sl-item.out{color:var(--orange);}
+.sl-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;background:transparent;}
+.sl-item.out .sl-dot{background:var(--orange);}
+
+/* ── Context menu ────────────────────────────────────────────── */
+#ctx{position:fixed;background:var(--white);border:1px solid var(--border);border-radius:3px;box-shadow:0 4px 16px rgba(0,0,0,0.15);z-index:200;display:none;min-width:190px;}
+#ctx.on{display:block;}
+.ctx-i{padding:7px 14px;font-size:12px;color:var(--text);cursor:pointer;}
+.ctx-i:hover{background:var(--blue-light);color:var(--blue);}
+.ctx-sep{height:1px;background:var(--border);margin:2px 0;}
+
+/* ── Toast ───────────────────────────────────────────────────── */
+#toast{position:fixed;bottom:14px;right:14px;z-index:500;background:var(--text);color:#fff;border-radius:3px;padding:9px 14px;font-size:12px;max-width:280px;opacity:0;transform:translateY(6px);transition:all 0.2s;pointer-events:none;}
+#toast.on{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- ── MODALE PRÉTRAITEMENT PIPELINE ────────────────────────────── -->
+<div id="m-pre" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:4px;padding:22px;width:560px;max-height:86vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="font-size:13px;font-weight:500;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+      <span id="m-pre-title">Pretreatment pipeline</span>
+      <button id="btn-close-pre-x" style="border:none;background:none;cursor:pointer;font-size:16px;color:#888;">&#x2715;</button>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5;">
+      Add multiple steps — they will be applied in order. Use ↑/↓ to reorder.
+    </p>
+    <div id="m-pre-steps" style="margin-bottom:14px;display:flex;flex-direction:column;gap:6px;min-height:40px;"></div>
+    <div style="display:flex;gap:6px;margin-bottom:14px;align-items:center;">
+      <select id="m-pre-add-method" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:3px;font-size:12px;">
+        <option value="snv">ISI SNV</option>
+        <option value="detrend">ISI Detrend</option>
+        <option value="snv_detrend">ISI SNV + Detrend</option>
+        <option value="derivative1">1st Derivative (SG)</option>
+        <option value="derivative2">2nd Derivative (SG)</option>
+        <option value="msc">MSC</option>
+        <option value="norm_01">Normalize [0,1]</option>
+        <option value="norm_sum">Normalize by sum</option>
+        <option value="mean_center">Mean centering</option>
+        <option value="autoscale">Autoscaling</option>
+      </select>
+      <button id="btn-add-pre-step" style="padding:5px 12px;border:1px solid var(--blue);border-radius:3px;background:var(--blue);color:#fff;cursor:pointer;font-size:12px;">+ Add step</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button id="btn-cancel-pre" style="padding:6px 14px;border:1px solid #d0d3d9;border-radius:3px;background:#fff;cursor:pointer;font-size:12px;">Cancel</button>
+      <button id="btn-apply-pre" style="padding:6px 14px;border:none;border-radius:3px;background:#1e5fa8;color:#fff;cursor:pointer;font-size:12px;font-weight:500;">Apply pipeline</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.92);z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+  <div style="font-size:13px;font-weight:500;color:var(--text);" id="loading-text">Loading...</div>
+  <div style="width:280px;height:4px;background:var(--bg2);border-radius:2px;overflow:hidden;">
+    <div id="loading-bar" style="height:100%;background:var(--blue);width:0%;transition:width 0.3s;border-radius:2px;"></div>
+  </div>
+  <div style="font-size:11px;color:var(--text3);" id="loading-sub"></div>
+</div>
+<div id="shell">
+
+  <!-- Topbar -->
+  <div id="topbar">
+    <button class="tb-btn" onclick="window.history.back()">&#8592; Retour</button>
+    <span id="topbar-title">Review spectra</span>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+      <span style="font-size:11px;color:rgba(255,255,255,0.7);" id="topbar-ss">—</span>
+      <button class="tb-btn" id="btn-reset-zoom">Reset zoom</button>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div id="stats-bar">
+    <span id="stat-total">—</span>
+    <span id="stat-train">—</span>
+    <span id="stat-val">—</span>
+    <span id="stat-out">—</span>
+    <span id="stat-sel" style="color:var(--orange);"></span>
+    <span style="margin-left:auto;" id="stat-param"></span>
+  </div>
+
+  <div id="body">
+
+    <!-- Chart area -->
+    <div id="chart-area">
+      <div id="chart-label" style="display:flex;align-items:center;justify-content:space-between;padding-right:8px;">
+        <span id="chart-label-text">Spectra — All parameters</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="zoomChart(1.3)" style="width:22px;height:22px;border:1px solid var(--border);border-radius:3px;background:var(--white);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;padding:0;" title="Zoom in">+</button>
+          <button onclick="zoomChart(0.77)" style="width:22px;height:22px;border:1px solid var(--border);border-radius:3px;background:var(--white);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;padding:0;" title="Zoom out">−</button>
+          <button onclick="resetChartZoom()" style="padding:0 7px;height:22px;border:1px solid var(--border);border-radius:3px;background:var(--white);cursor:pointer;font-size:10px;color:var(--text2);" title="Reset zoom">Reset</button>
+        </div>
+      </div>
+      <div id="chart-wrap">
+        <canvas id="main-canvas"></canvas>
+        <canvas id="range-canvas" style="position:absolute;inset:0;pointer-events:none;z-index:2;"></canvas>
+        <canvas id="sel-cv" style="position:absolute;inset:0;z-index:4;"></canvas>
+        <div id="chart-hint">Scroll = zoom &middot; Ctrl+drag = pan &middot; Shift+drag = sélectionner</div>
+      </div>
+      <div id="btm">
+        <button class="bbt danger" id="btn-mark">Mark as spectral outliers</button>
+        <button class="bbt" id="btn-unmark">Unmark as spectral outliers</button>
+        <button class="bbt" id="btn-sel-none">Select None</button>
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <button class="bbt prim" id="btn-apply-settings">Apply settings</button>
+          <button class="bbt" id="btn-close">Close review mode</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div id="sidebar-tabs">
+        <div class="stab on" data-tab="settings">Settings</div>
+        <div class="stab" data-tab="samples">Samples</div>
+      </div>
+
+      <!-- SETTINGS TAB -->
+      <div id="tab-settings">
+
+        <!-- Global display settings -->
+        <div class="ss">
+          <div class="ss-title">Display</div>
+          <div class="sf">
+            <label>Show spectra</label>
+            <select id="show-filter">
+              <option value="all">All</option>
+              <option value="training">Training only</option>
+              <option value="validation">Validation only</option>
+              <option value="outliers">Outliers only</option>
+            </select>
+          </div>
+          <div class="sf">
+            <label>Color by</label>
+            <select id="color-by">
+              <option value="set">Training / Validation</option>
+              <option value="param">Parameter value</option>
+              <option value="uniform">Uniform</option>
+            </select>
+          </div>
+          <div class="sf">
+            <label>Color parameter</label>
+            <select id="color-param">
+              <option value="">— None —</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Per-parameter pretreatment & wavelength selection -->
+        <div class="ss">
+          <div class="ss-title">Per-parameter settings</div>
+          <p style="font-size:11px;color:var(--text3);margin-bottom:8px;line-height:1.5;">
+            Each parameter can have its own pretreatment and wavelength intervals. Select a parameter to configure it.
+          </p>
+          <div id="param-tabs"></div>
+          <div id="param-config" style="display:none;">
+            <div class="sf" style="align-items:center;justify-content:space-between;">
+              <span id="param-config-label" style="font-size:11px;font-weight:500;color:var(--text2);">Select a parameter</span>
+              <button id="btn-param-pre" style="padding:4px 10px;border:1px solid var(--border);border-radius:3px;background:var(--white);cursor:pointer;font-size:11px;">
+                <span id="param-pre-label">None</span> ✎
+              </button>
+            </div>
+            <input type="hidden" id="param-pre" value="none"/>
+
+            <!-- Wavelength intervals -->
+            <div style="margin-bottom:6px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:11px;font-weight:500;color:var(--text2);">Wavelength intervals</span>
+                <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;">
+                  <input type="checkbox" id="param-vsel-max" style="accent-color:var(--blue);" checked>
+                  Use all
+                </label>
+              </div>
+              <div id="param-wl-ranges"></div>
+              <button class="btn-add-wl" id="btn-add-wl">+ Add interval</button>
+              <div style="font-size:10px;color:var(--text3);margin-top:6px;" id="param-wl-summary"></div>
+            </div>
+
+            <!-- Known LIBS emission lines shortcut -->
+            <div style="margin-bottom:8px;">
+              <div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:500;">Known emission lines (LIBS):</div>
+              <div id="emission-lines" style="display:flex;flex-wrap:wrap;gap:3px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Global pretreatment -->
+        <div class="ss">
+          <div class="ss-title">Global pretreatment (default)</div>
+          <div class="sf" style="align-items:center;justify-content:space-between;">
+            <span id="global-pre-label" style="font-size:12px;color:var(--text2);">None</span>
+            <button id="btn-open-global-pre" style="padding:4px 10px;border:1px solid var(--border);border-radius:3px;background:var(--white);cursor:pointer;font-size:11px;">Configure...</button>
+          </div>
+          <input type="hidden" id="global-pre" value="none"/>
+        </div>
+
+      </div><!-- /tab-settings -->
+
+      <!-- SAMPLES TAB -->
+      <div id="tab-samples">
+        <div class="sl-hd">
+          <span style="font-size:11px;font-weight:500;color:var(--text2);">Samples</span>
+          <select class="sl-mode" id="sl-mode">
+            <option value="sampleNumber">Sample number</option>
+            <option value="timeOfAnalysis">Time of analysis</option>
+          </select>
+        </div>
+        <div id="sample-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Context menu -->
+<div id="ctx">
+  <div class="ctx-i" id="ctx-mark">Mark as spectral outliers</div>
+  <div class="ctx-i" id="ctx-unmark">Unmark as spectral outliers</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-i" id="ctx-none">Select None</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-i" id="ctx-copy">Copy plot to clipboard</div>
+</div>
+
+<script type="module">
+import { auth, db, requireAuth } from '/shared/auth.js';
+import { ELEMENTS } from '/shared/config.js';
+import { collection, doc, getDoc, getDocs, updateDoc,
+         query, startAfter, limit, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+
+// ══════════════════════════════════════════════════════════════
+// KNOWN LIBS EMISSION LINES (NIST) for 178-427nm LIBS spectra
+// ══════════════════════════════════════════════════════════════
+const EMISSION_LINES = {
+  B:  [{ label:'B 249.8', from:247, to:253, note:'Principal line' }],
+  Ca: [{ label:'Ca 393.4', from:390, to:397, note:'Strong resonance' },
+       { label:'Ca 396.8', from:394, to:400, note:'Resonance doublet' },
+       { label:'Ca 317.9', from:315, to:321, note:'Secondary' },
+       { label:'Ca 315.9', from:313, to:319, note:'Secondary' }],
+  Cu: [{ label:'Cu 324.8', from:322, to:328, note:'Strong resonance' },
+       { label:'Cu 327.4', from:325, to:330, note:'Resonance doublet' }],
+  Fe: [{ label:'Fe 238.2', from:235, to:242, note:'Strong line' },
+       { label:'Fe 239.6', from:237, to:243, note:'Strong line' },
+       { label:'Fe 259.9', from:257, to:263, note:'Secondary' },
+       { label:'Fe 261.2', from:259, to:265, note:'Secondary' }],
+  K:  [{ label:'K 404.4', from:402, to:408, note:'Weak in LIBS' }],
+  Mg: [{ label:'Mg 279.6', from:277, to:283, note:'Strong doublet' },
+       { label:'Mg 280.3', from:278, to:284, note:'Strong doublet' },
+       { label:'Mg 285.2', from:283, to:289, note:'Resonance' }],
+  Mn: [{ label:'Mn 257.6', from:255, to:261, note:'Multiplet' },
+       { label:'Mn 259.4', from:257, to:263, note:'Multiplet' },
+       { label:'Mn 260.6', from:258, to:265, note:'Multiplet' }],
+  Na: [{ label:'Na 330.2', from:328, to:333, note:'Resonance doublet' }],
+  P:  [{ label:'P 213.6', from:211, to:217, note:'In LIBS range' },
+       { label:'P 214.9', from:212, to:218, note:'Secondary' }],
+  Zn: [{ label:'Zn 213.9', from:211, to:217, note:'Strong resonance' },
+       { label:'Zn 206.2', from:203, to:210, note:'Secondary' }]
+};
+
+// Range colors for visualization on chart
+const RANGE_COLORS = [
+  'rgba(30,95,168,0.12)',   // blue
+  'rgba(46,125,82,0.12)',   // green
+  'rgba(196,92,0,0.12)',    // orange
+  'rgba(168,85,247,0.12)',  // purple
+  'rgba(34,211,238,0.12)',  // cyan
+];
+const RANGE_BORDER_COLORS = [
+  'rgba(30,95,168,0.5)',
+  'rgba(46,125,82,0.5)',
+  'rgba(196,92,0,0.5)',
+  'rgba(168,85,247,0.5)',
+  'rgba(34,211,238,0.5)',
+];
+const RANGE_DOT_COLORS = ['#1e5fa8','#2e7d52','#c45c00','#a855f7','#22d3ee'];
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+// paramSettings: { [element]: { pre: string, useAll: bool, ranges: [{from,to}] } }
+const DEFAULT_PRE = 'snv_detrend';
+
+const S = {
+  project: null, ssId: null,
+  spectra: [], wl: [],
+  selIdx: new Set(),
+  showFilter: 'all',
+  colorBy: 'set',
+  colorParam: '',
+  globalPreConfig: {method:'none', params:{}},
+  globalPre: DEFAULT_PRE,
+  paramSettings: {},   // per-element config
+  activeParamTab: '',  // which element is being configured
+  labelMode: 'sampleNumber',
+  chart: null,
+};
+
+let _tt;
+function toast(msg, type='info'){
+  const el=document.getElementById('toast');
+  const c={info:'#1e5fa8',success:'#2e7d52',error:'#c0392b',warn:'#c45c00'};
+  el.style.background=c[type]||c.info;el.textContent=msg;el.classList.add('on');
+  if(_tt)clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('on'),3200);
+}
+
+function showLoadingOverlay(msg) {
+  const el = document.getElementById('loading-overlay');
+  if (el) { el.style.display='flex'; document.getElementById('loading-text').textContent=msg||'Loading...'; }
+}
+function hideLoadingOverlay() {
+  const el = document.getElementById('loading-overlay');
+  if (el) el.style.display='none';
+}
+function setLoadProgress(pct, sub) {
+  const bar = document.getElementById('loading-bar');
+  const sub2 = document.getElementById('loading-sub');
+  if (bar) bar.style.width = pct+'%';
+  if (sub2) sub2.textContent = sub||'';
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+requireAuth(async (user, profile) => {
+  // Utiliser l'uid de l'utilisateur authentifié (pas auth.currentUser qui peut être null)
+  const proj = JSON.parse(
+    sessionStorage.getItem('dcc_project_'+user.uid) ||
+    sessionStorage.getItem('dcc_project') ||
+    'null'
+  );
+  if (!proj) { toast('No project selected — go back to Samples','warn'); setTimeout(()=>window.location.href='/samples/',2000); return; }
+  S.project = proj;
+  document.getElementById('topbar-ss').textContent = proj.name;
+  document.getElementById('btn-logout-top')?.addEventListener('click', async()=>{ await signOut(getAuth()); window.location.href='/login/'; });
+  showLoadingOverlay('Loading spectra...');
+  await loadSpectra(proj.id);
+  hideLoadingOverlay();
+});
+
+async function loadSpectra(pid) {
+  try {
+    const ssSnap = await getDocs(collection(db,'projects',pid,'sampleSets'));
+    if (ssSnap.empty) { toast('No sample set — import spectra first','warn'); setTimeout(()=>window.location.href='/samples/',2000); return; }
+    const ss = ssSnap.docs[0];
+    S.ssId = ss.id;
+    S.spectra = [];
+    const col = collection(db,'projects',pid,'sampleSets',ss.id,'spectra');
+    const total = ss.data().samples || 0;
+    let last = null, loaded = 0;
+    while (true) {
+      const q = last ? query(col,startAfter(last),limit(200)) : query(col,limit(200));
+      const snap = await getDocs(q);
+      if (snap.empty) break;
+      S.spectra.push(...snap.docs.map(d=>d.data()));
+      last = snap.docs[snap.docs.length-1]; loaded += snap.docs.length;
+      setLoadProgress(total ? Math.round(loaded/total*100) : 50, `${loaded}${total?' / '+total:''} spectra`);
+      if (snap.docs.length < 200) break;
+    }
+    if (S.spectra.length && S.spectra[0].wavelengths) S.wl = S.spectra[0].wavelengths;
+
+    // Build default paramSettings — try Firestore first, then sessionStorage, then defaults
+    const avail = ELEMENTS.filter(el => S.spectra.some(s=>s.referenceValues?.[el]!==undefined));
+    // 1. Try to load from Firestore project doc
+    let firestoreSettings = null;
+    try {
+      const projDoc = await getDoc(doc(db,'projects',S.project.id));
+      if (projDoc.exists()){
+        const data = projDoc.data();
+        if (data.paramSettings) firestoreSettings = data.paramSettings;
+        if (data.globalPreConfig) S.globalPreConfig = data.globalPreConfig;
+      }
+    } catch(e) { console.warn('Could not load settings from Firestore', e); }
+    // 2. Apply Firestore settings if available
+    if (firestoreSettings) {
+      Object.assign(S.paramSettings, firestoreSettings);
+    } else {
+      // 3. Try sessionStorage
+      try {
+        const ssSet = sessionStorage.getItem('dcc_param_settings');
+        if (ssSet) Object.assign(S.paramSettings, JSON.parse(ssSet));
+      } catch(e){}
+    }
+    // 4. Fill any missing element with defaults
+    avail.forEach(el => {
+      if (!S.paramSettings[el]) {
+        S.paramSettings[el] = {
+          pre: DEFAULT_PRE,
+          useAll: true,
+          ranges: EMISSION_LINES[el] ? EMISSION_LINES[el].map(l=>({from:l.from,to:l.to})) : []
+        };
+      }
+    });
+
+    // Populate color param selector
+    const cpSel = document.getElementById('color-param');
+    cpSel.innerHTML = '<option value="">— None —</option>' + avail.map(el=>`<option value="${el}">${el}</option>`).join('');
+
+    buildParamTabs(avail);
+    buildChart();
+    renderSampleList();
+    updateStats();
+    toast(`${S.spectra.length} spectra loaded`,'success');
+  } catch(e) { console.error(e); toast('Load error: '+e.message,'error'); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// PARAM TABS
+// ══════════════════════════════════════════════════════════════
+function buildParamTabs(avail) {
+  const container = document.getElementById('param-tabs');
+  container.innerHTML = avail.map(el => `
+    <div class="ptab${hasCustomConfig(el)?' configured':''}" data-el="${el}">${el}</div>
+  `).join('');
+  container.querySelectorAll('.ptab').forEach(t => {
+    t.addEventListener('click', () => selectParamTab(t.dataset.el));
+  });
+}
+
+function hasCustomConfig(el) {
+  const cfg = S.paramSettings[el];
+  if (!cfg) return false;
+  return cfg.pre !== DEFAULT_PRE || !cfg.useAll;
+}
+
+function selectParamTab(el) {
+  S.activeParamTab = el;
+  document.querySelectorAll('.ptab').forEach(t => {
+    t.classList.toggle('on', t.dataset.el === el);
+  });
+  document.getElementById('param-config').style.display = 'block';
+  document.getElementById('param-config-label').textContent = `${el}`;
+  document.getElementById('stat-param').textContent = `Editing: ${el}`;
+
+  const cfg = S.paramSettings[el] || { pre:'none', useAll:true, ranges:[] };
+  document.getElementById('param-pre').value = cfg.pre || 'none';
+  document.getElementById('param-vsel-max').checked = cfg.useAll !== false;
+  // Mettre à jour le label de prétraitement
+  const PRE_LBL = {none:'None',snv:'ISI SNV',snv_detrend:'ISI SNV + Detrend',detrend:'ISI Detrend',derivative1:'1st Derivative',derivative2:'2nd Derivative',msc:'MSC',norm_01:'Normalize [0,1]',norm_sum:'Normalize by sum'};
+  const lbl = document.getElementById('param-pre-label');
+  if (lbl) lbl.textContent = PRE_LBL[cfg.pre||'none'] || cfg.pre || 'None';
+
+  renderWlRanges(el);
+  renderEmissionLines(el);
+  highlightParamRangesOnChart(el);
+}
+
+// ══════════════════════════════════════════════════════════════
+// WAVELENGTH RANGES UI
+// ══════════════════════════════════════════════════════════════
+function renderWlRanges(el) {
+  const cfg = S.paramSettings[el];
+  const container = document.getElementById('param-wl-ranges');
+  const disabled = cfg.useAll;
+
+  container.innerHTML = cfg.ranges.map((r, i) => `
+    <div class="wl-row" data-ridx="${i}">
+      <div class="wl-color" style="background:${RANGE_DOT_COLORS[i%RANGE_DOT_COLORS.length]};"></div>
+      <input type="number" class="wl-from" value="${r.from}" min="${S.wl[0]||178}" max="${S.wl[S.wl.length-1]||427}" step="0.5" ${disabled?'disabled':''} placeholder="From"/>
+      <span>–</span>
+      <input type="number" class="wl-to" value="${r.to}" min="${S.wl[0]||178}" max="${S.wl[S.wl.length-1]||427}" step="0.5" ${disabled?'disabled':''} placeholder="To"/>
+      <button class="wl-zoom" data-ridx="${i}" title="Zoom sur cet intervalle" style="width:20px;height:20px;border:1px solid var(--border);border-radius:3px;background:var(--white);cursor:pointer;font-size:10px;padding:0;">&#x26B2;</button>
+      <button class="wl-del" data-ridx="${i}" ${disabled?'disabled':''}>&#x2715;</button>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('change', () => saveParamRanges(el));
+  });
+  container.querySelectorAll('.wl-zoom').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.ridx);
+      const r = S.paramSettings[el].ranges[i];
+      if (!r || !S.chart) return;
+      // Zoom sur l'intervalle
+      const wl = S.spectra[0]?.wavelengths || S.wl;
+      const step = Math.max(1, Math.floor(wl.length/200));
+      const wlFiltered = wl.filter((_,j)=>j%step===0);
+      const pad = (r.to - r.from) * 0.2;
+      const fromIdx = wlFiltered.findIndex(w => w >= r.from - pad);
+      const toIdx = wlFiltered.findIndex(w => w >= r.to + pad);
+      S.chart.options.scales.x.min = Math.max(0, fromIdx);
+      S.chart.options.scales.x.max = toIdx < 0 ? wlFiltered.length-1 : toIdx;
+      delete S.chart.options.scales.y.min;
+      delete S.chart.options.scales.y.max;
+      S.chart.update('none');
+    });
+  });
+  container.querySelectorAll('.wl-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      S.paramSettings[el].ranges.splice(parseInt(btn.dataset.ridx), 1);
+      renderWlRanges(el);
+      updateWlSummary(el);
+      highlightParamRangesOnChart(el);
+    });
+  });
+
+  updateWlSummary(el);
+}
+
+function saveParamRanges(el) {
+  const cfg = S.paramSettings[el];
+  const rows = document.querySelectorAll('.wl-row');
+  cfg.ranges = [...rows].map(row => ({
+    from: parseFloat(row.querySelector('.wl-from').value)||0,
+    to:   parseFloat(row.querySelector('.wl-to').value)||0,
+    label: ''
+  }));
+  updateWlSummary(el);
+  highlightParamRangesOnChart(el);
+  updateParamTabStyle(el);
+}
+
+function updateWlSummary(el) {
+  const cfg = S.paramSettings[el];
+  const el2 = document.getElementById('param-wl-summary');
+  if (cfg.useAll) {
+    el2.textContent = `Using full range: ${S.wl[0]||178}–${S.wl[S.wl.length-1]||427} nm`;
+    return;
+  }
+  const total = cfg.ranges.reduce((s,r) => s + Math.max(0, r.to-r.from), 0);
+  el2.textContent = `${cfg.ranges.length} interval(s) · ~${total.toFixed(1)} nm total`;
+}
+
+function updateParamTabStyle(el) {
+  const tab = document.querySelector(`.ptab[data-el="${el}"]`);
+  if (!tab) return;
+  tab.classList.toggle('configured', hasCustomConfig(el));
+}
+
+// Add interval button
+document.getElementById('btn-add-wl').addEventListener('click', () => {
+  const el = S.activeParamTab;
+  if (!el) return;
+  const wlMin = S.wl[0]||178, wlMax = S.wl[S.wl.length-1]||427;
+  S.paramSettings[el].ranges.push({ from: wlMin, to: wlMax, label: '' });
+  renderWlRanges(el);
+  updateWlSummary(el);
+});
+
+// Use all checkbox
+document.getElementById('param-vsel-max').addEventListener('change', function() {
+  const el = S.activeParamTab;
+  if (!el) return;
+  S.paramSettings[el].useAll = this.checked;
+  renderWlRanges(el);
+  highlightParamRangesOnChart(el);
+  updateParamTabStyle(el);
+});
+
+// Pretreatment change
+document.getElementById('param-pre').addEventListener('change', function() {
+  const el = S.activeParamTab;
+  if (!el) return;
+  S.paramSettings[el].pre = this.value;
+  updateParamTabStyle(el);
+});
+
+// ══════════════════════════════════════════════════════════════
+// EMISSION LINES SHORTCUTS
+// ══════════════════════════════════════════════════════════════
+function renderEmissionLines(el) {
+  const container = document.getElementById('emission-lines');
+  const lines = EMISSION_LINES[el] || [];
+  if (!lines.length) { container.innerHTML = '<span style="font-size:11px;color:var(--text3);">No known lines in range</span>'; return; }
+  container.innerHTML = lines.map((l,i) => `
+    <button data-lidx="${i}" style="
+      padding:2px 7px;font-size:10px;border-radius:3px;cursor:pointer;
+      border:1px solid ${RANGE_BORDER_COLORS[i%RANGE_BORDER_COLORS.length]};
+      background:${RANGE_COLORS[i%RANGE_COLORS.length]};
+      color:${RANGE_DOT_COLORS[i%RANGE_DOT_COLORS.length]};
+      font-family:var(--mono);
+    " title="${l.note}">${l.label}</button>
+  `).join('');
+  container.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const line = lines[parseInt(btn.dataset.lidx)];
+      const cfg = S.paramSettings[el];
+      if (cfg.useAll) {
+        cfg.useAll = false;
+        document.getElementById('param-vsel-max').checked = false;
+        cfg.ranges = [];
+      }
+      // Check if already added
+      const already = cfg.ranges.some(r => Math.abs(r.from-line.from)<2 && Math.abs(r.to-line.to)<2);
+      if (!already) {
+        cfg.ranges.push({ from: line.from, to: line.to, label: line.label });
+        renderWlRanges(el);
+        updateWlSummary(el);
+        highlightParamRangesOnChart(el);
+        updateParamTabStyle(el);
+        toast(`${line.label} added for ${el}`,'success');
+      } else {
+        toast(`${line.label} already added`,'info');
+      }
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// CHART
+// ══════════════════════════════════════════════════════════════
+function applyPreSingle(v, method, params) {
+  params = params || {};
+  if (method==='snv') return snv([...v]);
+  if (method==='detrend') return detrend([...v]);
+  if (method==='snv_detrend') return detrend(snv([...v]));
+  if (method==='derivative1') return deriv([...v], 1, params.gap||16, params.smooth||16);
+  if (method==='derivative2') return deriv([...v], 2, params.gap||16, params.smooth||16);
+  if (method==='msc') return msc([...v], S.mscRef);
+  if (method==='norm_01') { const mn=Math.min(...v),mx=Math.max(...v); return mx===mn?v.map(()=>0):v.map(x=>(x-mn)/(mx-mn)); }
+  if (method==='norm_sum') { const s=v.reduce((a,b)=>a+Math.abs(b),0); return s===0?[...v]:v.map(x=>x/s); }
+  if (method==='mean_center') { const m=v.reduce((a,b)=>a+b,0)/v.length; return v.map(x=>x-m); }
+  if (method==='autoscale') { const m=v.reduce((a,b)=>a+b,0)/v.length; const sd=Math.sqrt(v.reduce((ss,x)=>ss+(x-m)**2,0)/Math.max(1,v.length-1)); return sd===0?v.map(()=>0):v.map(x=>(x-m)/sd); }
+  return [...v];
+}
+
+function applyPre(v, pre, config) {
+  // Nouvelle version : support du pipeline (liste d'étapes)
+  if (config?.pipeline?.length) {
+    let out = [...v];
+    for (const step of config.pipeline) {
+      out = applyPreSingle(out, step.method, step.params);
+    }
+    return out;
+  }
+  // Fallback : méthode unique
+  if (!pre || pre==='none') return [...v];
+  // Compound method "a+b+c" → execute séquentiellement
+  if (pre.includes('+') && pre !== 'snv_detrend') {
+    let out = [...v];
+    pre.split('+').forEach(m => { out = applyPreSingle(out, m, config?.params||{}); });
+    return out;
+  }
+  return applyPreSingle(v, pre, config?.params||{});
+}
+function msc(v, ref) {
+  if (!ref||ref.length!==v.length) return v;
+  const n=v.length,mx=v.reduce((a,b)=>a+b,0)/n,mr=ref.reduce((a,b)=>a+b,0)/n;
+  let num=0,den=0;
+  for(let i=0;i<n;i++){num+=(ref[i]-mr)*(v[i]-mx);den+=(ref[i]-mr)**2;}
+  const b=num/(den||1),a=mx-b*mr;
+  return v.map((x,i)=>(x-a)/b);
+}
+function snv(s){const n=s.length,m=s.reduce((a,b)=>a+b,0)/n,sd=Math.sqrt(s.reduce((ss,v)=>ss+(v-m)**2,0)/Math.max(1,n-1));return sd===0?s.map(()=>0):s.map(v=>(v-m)/sd);}
+function detrend(s){const n=s.length,xm=(n-1)/2,ym=s.reduce((a,b)=>a+b,0)/n;let num=0,den=0;s.forEach((v,i)=>{num+=(i-xm)*(v-ym);den+=(i-xm)**2;});const sl=num/(den||1);return s.map((v,i)=>v-(sl*i+(ym-sl*xm)));}
+function deriv(s,o=1,g=16,poly=2){const r=[...s];return r.map((x,i)=>i<g||i>r.length-g-1?0:o===1?(r[i+g]-r[i-g])/(2*g):(r[i+g]-2*r[i]+r[i-g])/(g*g));}
+
+function getSpectrumColor(s, i) {
+  const isSel = S.selIdx.has(i);
+  if (isSel) return 'rgba(255,140,0,0.85)';
+  if (s.isSpectralOutlier) return 'rgba(192,57,43,0.85)';
+  if (S.colorBy === 'set') return s.logicalSet==='Validation' ? 'rgba(46,125,82,0.2)' : 'rgba(30,95,168,0.15)';
+  return 'rgba(30,95,168,0.15)';
+}
+
+function buildChart() {
+  const sp = S.spectra;
+  if (!sp.length || !sp[0].wavelengths) return;
+
+  const step = Math.max(1, Math.floor(sp[0].wavelengths.length / 200));
+  const wl = sp[0].wavelengths.filter((_,i) => i%step===0);
+
+  const pre = document.getElementById('global-pre').value;
+  let filtered = sp;
+  if (S.showFilter==='training')   filtered = sp.filter(s=>(s.logicalSet||'').toLowerCase()==='training');
+  if (S.showFilter==='validation') filtered = sp.filter(s=>(s.logicalSet||'').toLowerCase()==='validation');
+  if (S.showFilter==='outliers')   filtered = sp.filter(s=>s.isSpectralOutlier);
+
+  // Calculer référence MSC si besoin
+  if (pre === 'msc') {
+    const mean = new Array(S.spectra[0]?.intensities?.length||0).fill(0);
+    filtered.forEach(s => s.intensities.forEach((v,i) => { mean[i]+=v; }));
+    S.mscRef = mean.map(v => v / (filtered.length||1));
+  }
+
+  // Build spectrum datasets — applique prétraitement par intervalle si configuré
+  const datasets = filtered.map((s) => {
+    const realIdx = sp.indexOf(s);
+    // Prétraitement : si param actif a des intervalles, appliquer par zone
+    let intensities = [...s.intensities];
+    if (S.activeParamTab && S.paramSettings[S.activeParamTab] && !S.paramSettings[S.activeParamTab].useAll) {
+      const cfg = S.paramSettings[S.activeParamTab];
+      const full = applyPre(intensities, pre, S.globalPreConfig);
+      const result = [...full];
+      cfg.ranges.forEach(r => {
+        const fromI = s.wavelengths.findIndex(w => w >= r.from);
+        const toI   = s.wavelengths.findIndex(w => w >= r.to);
+        const start = Math.max(0, fromI);
+        const end   = toI < 0 ? s.wavelengths.length-1 : toI;
+        const slice = intensities.slice(start, end+1);
+        const processed = applyPre(slice, cfg.pre, cfg.preConfig);
+        processed.forEach((v, j) => { result[start+j] = v; });
+      });
+      intensities = result;
+    } else {
+      intensities = applyPre(intensities, pre, S.globalPreConfig);
+    }
+    const proc = intensities.filter((_,j) => j%step===0);
+    return {
+      label: s.sampleNumber,
+      data: proc,
+      borderColor: getSpectrumColor(s, realIdx),
+      borderWidth: S.selIdx.has(realIdx) ? 2 : 0.8,
+      pointRadius: 0, fill: false, tension: 0,
+      _realIdx: realIdx
+    };
+  });
+
+  if (S.chart) { S.chart.destroy(); S.chart = null; }
+  const canvas = document.getElementById('main-canvas');
+  const wrap   = document.getElementById('chart-wrap');
+  canvas.width  = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+
+  // Determine Y axis label based on pretreatment
+  const yLabel = pre === 'none' ? 'Emission (EU)' :
+                 pre.includes('snv') ? 'Absorbance / log(1/R) — SNV' :
+                 pre.includes('deriv') ? 'Derivative' : 'Preprocessed';
+
+  S.chart = new Chart(canvas, {
+    type: 'line',
+    data: { labels: wl, datasets },
+    options: {
+      animation: false, responsive: false, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'nearest', intersect: true,
+          callbacks: { label: c => c.dataset.label || '' }
+        }
+      },
+      scales: {
+        x: {
+          title: { display:true, text:'Wavelength (nm)', color:'#8a909e', font:{size:10} },
+          ticks: { maxTicksLimit:10, color:'#8a909e', font:{size:9} },
+          grid: { color:'rgba(0,0,0,0.04)' }
+        },
+        y: {
+          title: { display:true, text:yLabel, color:'#8a909e', font:{size:10} },
+          ticks: { maxTicksLimit:7, color:'#8a909e', font:{size:9} },
+          grid: { color:'rgba(0,0,0,0.04)' }
+        }
+      },
+      onClick: (e, els) => {
+        if (!els.length) { S.selIdx.clear(); updateStats(); buildChart(); renderSampleList(); return; }
+        const el = els[0];
+        const ds = S.chart.data.datasets[el.datasetIndex];
+        if (ds._realIdx === undefined) return;
+        const ri = ds._realIdx;
+        if (S.selIdx.has(ri)) S.selIdx.delete(ri); else S.selIdx.add(ri);
+        updateStats(); buildChart(); renderSampleList();
+      }
+    }
+  });
+
+  // Draw range highlights on overlay canvas AFTER chart renders (correct pixel coords)
+  requestAnimationFrame(() => drawRangeHighlights(wl));
+}
+
+// ── Draw colored range bands on the overlay canvas (no scale distortion) ──
+function drawRangeHighlights(wl) {
+  if (!S.chart) return;
+  const rangeCanvas = document.getElementById('range-canvas');
+  if (!rangeCanvas) return;
+  const wrap = document.getElementById('chart-wrap');
+  rangeCanvas.width  = wrap.clientWidth;
+  rangeCanvas.height = wrap.clientHeight;
+  const rc = rangeCanvas.getContext('2d');
+  rc.clearRect(0, 0, rangeCanvas.width, rangeCanvas.height);
+
+  const chartArea = S.chart.chartArea;
+  if (!chartArea) return;
+  const xScale = S.chart.scales.x;
+  const yScale = S.chart.scales.y;
+
+  let colorIdx = 0;
+  Object.entries(S.paramSettings).forEach(([el, cfg]) => {
+    if (cfg.useAll || !cfg.ranges || !cfg.ranges.length) return;
+    cfg.ranges.forEach((r) => {
+      // Convert wavelength to pixel X position
+      // xScale uses index labels, not actual wavelength values
+      // Find closest indices
+      const fromLabel = wl.findIndex(w => w >= r.from);
+      const toLabel   = wl.findIndex(w => w >= r.to);
+      if (fromLabel < 0) return;
+      const toL = toLabel < 0 ? wl.length - 1 : toLabel;
+
+      const xFrom = xScale.getPixelForValue(fromLabel);
+      const xTo   = xScale.getPixelForValue(toL);
+      const yTop  = chartArea.top;
+      const yBot  = chartArea.bottom;
+
+      // Fill background
+      const fillColors = [
+        'rgba(30,95,168,0.10)',
+        'rgba(46,125,82,0.10)',
+        'rgba(196,92,0,0.10)',
+        'rgba(168,85,247,0.10)',
+        'rgba(34,211,238,0.10)',
+      ];
+      const strokeColors = [
+        'rgba(30,95,168,0.5)',
+        'rgba(46,125,82,0.5)',
+        'rgba(196,92,0,0.5)',
+        'rgba(168,85,247,0.5)',
+        'rgba(34,211,238,0.5)',
+      ];
+      rc.fillStyle   = fillColors[colorIdx % fillColors.length];
+      rc.strokeStyle = strokeColors[colorIdx % strokeColors.length];
+      rc.lineWidth   = 1;
+
+      rc.fillRect(xFrom, yTop, xTo - xFrom, yBot - yTop);
+      // Left border line
+      rc.beginPath(); rc.moveTo(xFrom, yTop); rc.lineTo(xFrom, yBot);
+      rc.setLineDash([4, 3]); rc.stroke();
+      // Right border line
+      rc.beginPath(); rc.moveTo(xTo, yTop); rc.lineTo(xTo, yBot);
+      rc.stroke();
+      rc.setLineDash([]);
+
+      // Label at top
+      rc.fillStyle = strokeColors[colorIdx % strokeColors.length];
+      rc.font = '9px IBM Plex Mono, monospace';
+      rc.fillText(`${r.label||el} ${r.from}–${r.to}nm`, xFrom + 2, yTop + 10);
+
+      colorIdx++;
+    });
+  });
+}
+
+// Highlight param ranges on chart (called when a param tab is selected)
+function highlightParamRangesOnChart(el) {
+  buildChart();
+  updateStats();
+  document.getElementById('chart-label').textContent =
+    `Spectra — ${el} (${S.paramSettings[el]?.pre||'none'})`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// SELECTION OVERLAY
+// ══════════════════════════════════════════════════════════════
+const overlay = document.getElementById('sel-cv');
+const ctx2 = overlay.getContext('2d');
+let dragging = false, dStart = null;
+
+function resizeOverlay() {
+  const w = document.getElementById('chart-wrap');
+  overlay.width = w.clientWidth; overlay.height = w.clientHeight;
+  const rc = document.getElementById('range-canvas');
+  if(rc){rc.width=w.clientWidth;rc.height=w.clientHeight;}
+}
+resizeOverlay();
+window.addEventListener('resize', () => { resizeOverlay(); buildChart(); });
+
+overlay.style.pointerEvents = 'all';
+overlay.style.cursor = 'crosshair';
+
+overlay.addEventListener('mousedown', e => {
+  if (e.button !== 0) return; // left click only
+  const r = overlay.getBoundingClientRect();
+  dragging = true;
+  dStart = { x: e.clientX-r.left, y: e.clientY-r.top };
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const r = overlay.getBoundingClientRect();
+  const cur = { x: e.clientX-r.left, y: e.clientY-r.top };
+  ctx2.clearRect(0,0,overlay.width,overlay.height);
+  const x=Math.min(dStart.x,cur.x),y=Math.min(dStart.y,cur.y);
+  const w=Math.abs(cur.x-dStart.x),h=Math.abs(cur.y-dStart.y);
+  ctx2.fillStyle='rgba(30,95,168,0.08)';ctx2.strokeStyle='rgba(30,95,168,0.5)';ctx2.lineWidth=1;
+  ctx2.fillRect(x,y,w,h);ctx2.strokeRect(x,y,w,h);
+});
+
+document.addEventListener('mouseup', e => {
+  if (!dragging) { return; }
+  dragging = false;
+  ctx2.clearRect(0,0,overlay.width,overlay.height);
+  if (!S.chart) return;
+  const r = overlay.getBoundingClientRect();
+  const cur = { x: e.clientX-r.left, y: e.clientY-r.top };
+  const x0=Math.min(dStart.x,cur.x),x1=Math.max(dStart.x,cur.x);
+  const y0=Math.min(dStart.y,cur.y),y1=Math.max(dStart.y,cur.y);
+  if (x1-x0<5 && y1-y0<5) return;
+
+  const xs=S.chart.scales.x,ys=S.chart.scales.y;
+  if(!xs||!ys)return;
+
+  // Le chart utilise des labels indexés (0..N), on récupère l'index réel
+  const step=Math.max(1,Math.floor(S.spectra[0].wavelengths.length/200));
+  const wlDisplay=S.spectra[0].wavelengths.filter((_,i)=>i%step===0);
+
+  // Les valeurs X du chart sont des indices (getValueForPixel renvoie l'index dans wlDisplay)
+  const xIdxFrom = Math.max(0, xs.getValueForPixel(x0));
+  const xIdxTo = Math.min(wlDisplay.length-1, xs.getValueForPixel(x1));
+  const yFrom = ys.getValueForPixel(y1);
+  const yTo = ys.getValueForPixel(y0);
+
+  if (!e.ctrlKey && !e.metaKey) S.selIdx.clear();
+
+  // Pour chaque spectre, appliquer le même traitement que buildChart (global + per-interval)
+  const pre = document.getElementById('global-pre').value;
+  S.spectra.forEach((s,i) => {
+    let ints = [...s.intensities];
+    if (S.activeParamTab && S.paramSettings[S.activeParamTab] && !S.paramSettings[S.activeParamTab].useAll) {
+      const cfg = S.paramSettings[S.activeParamTab];
+      const full = applyPre(ints, pre, S.globalPreConfig);
+      const result = [...full];
+      cfg.ranges.forEach(r => {
+        const fromI = s.wavelengths.findIndex(w => w >= r.from);
+        const toI = s.wavelengths.findIndex(w => w >= r.to);
+        const start = Math.max(0, fromI);
+        const end = toI < 0 ? s.wavelengths.length-1 : toI;
+        const slice = ints.slice(start, end+1);
+        const processed = applyPre(slice, cfg.pre, cfg.preConfig);
+        processed.forEach((v, j) => { result[start+j] = v; });
+      });
+      ints = result;
+    } else {
+      ints = applyPre(ints, pre, S.globalPreConfig);
+    }
+    const proc = ints.filter((_,j)=>j%step===0);
+    // Check if any point in proc falls in the box
+    let inBox = false;
+    const iFrom = Math.floor(xIdxFrom), iTo = Math.ceil(xIdxTo);
+    for (let k = Math.max(0,iFrom); k <= Math.min(proc.length-1,iTo); k++) {
+      if (proc[k] >= yFrom && proc[k] <= yTo) { inBox = true; break; }
+    }
+    if (inBox) S.selIdx.add(i);
+  });
+  updateStats(); buildChart(); renderSampleList();
+  if (S.selIdx.size) toast(`${S.selIdx.size} spectra selected`, 'info');
+});
+
+// Right-click context menu
+overlay.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  const m=document.getElementById('ctx');
+  m.style.left=e.clientX+'px';
+  m.style.top=e.clientY+'px';
+  m.classList.add('on');
+});
+// Fermer seulement au clic gauche hors du menu
+document.addEventListener('mousedown', (e) => {
+  const m = document.getElementById('ctx');
+  if (!m.contains(e.target)) m.classList.remove('on');
+});
+// Empêcher la propagation DANS le menu pour ne pas le fermer avant l'action
+document.getElementById('ctx')?.addEventListener('mousedown', e => e.stopPropagation());
+
+// ══════════════════════════════════════════════════════════════
+// OUTLIER MARKING
+// ══════════════════════════════════════════════════════════════
+function markSel(isOut) {
+  if (!S.selIdx.size) return;
+  S.selIdx.forEach(i => {
+    S.spectra[i].isSpectralOutlier = isOut;
+    S.spectra[i].isOutlier = isOut;
+  });
+  updateStats(); buildChart(); renderSampleList();
+  saveOutliers();
+}
+
+async function saveOutliers(silent=false) {
+  if (!S.project||!S.ssId) return;
+  const pid=S.project.id;
+  const total = S.spectra.length;
+  let done = 0;
+  for(let i=0;i<S.spectra.length;i+=20){
+    await Promise.all(S.spectra.slice(i,i+20).map(s=>
+      updateDoc(doc(db,'projects',pid,'sampleSets',S.ssId,'spectra',s.sampleNumber.replace(/[./\s#[\]*?]/g,'_')),
+        {isSpectralOutlier:s.isSpectralOutlier||false,isOutlier:s.isOutlier||false}).catch(()=>{})
+    ));
+    done += Math.min(20, total-i);
+  }
+  if (!silent) toast(`Outlier status saved (${total} spectra)`,'success');
+}
+
+['btn-mark','ctx-mark'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>markSel(true)));
+['btn-unmark','ctx-unmark'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>markSel(false)));
+['btn-sel-none','ctx-none'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{S.selIdx.clear();updateStats();buildChart();renderSampleList();}));
+
+// ══════════════════════════════════════════════════════════════
+// SIDEBAR TABS
+// ══════════════════════════════════════════════════════════════
+document.querySelectorAll('.stab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.stab').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  document.getElementById('tab-settings').style.display = t.dataset.tab==='settings'?'flex':'none';
+  document.getElementById('tab-samples').style.display  = t.dataset.tab==='samples'?'flex':'none';
+}));
+
+// ══════════════════════════════════════════════════════════════
+// SAMPLE LIST
+// ══════════════════════════════════════════════════════════════
+document.getElementById('sl-mode').addEventListener('change', function() {
+  S.labelMode=this.value; renderSampleList();
+});
+
+function renderSampleList() {
+  const el = document.getElementById('sample-list');
+  el.innerHTML = S.spectra.map((s,i)=>`
+    <div class="sl-item${S.selIdx.has(i)?' sel':''}${s.isSpectralOutlier?' out':''}" data-idx="${i}">
+      <div class="sl-dot"></div>
+      <span>${s[S.labelMode]||s.sampleNumber}</span>
+    </div>
+  `).join('');
+  el.querySelectorAll('[data-idx]').forEach(item=>{
+    item.addEventListener('click',()=>{
+      const i=parseInt(item.dataset.idx);
+      if(S.selIdx.has(i))S.selIdx.delete(i);else{S.selIdx.clear();S.selIdx.add(i);}
+      updateStats();buildChart();renderSampleList();
+      item.scrollIntoView({block:'nearest'});
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// STATS
+// ══════════════════════════════════════════════════════════════
+function updateStats() {
+  const sp=S.spectra;
+  document.getElementById('stat-total').textContent=`Total: ${sp.length}`;
+  document.getElementById('stat-train').textContent=`Training: ${sp.filter(s=>s.logicalSet==='Training').length}`;
+  document.getElementById('stat-val').textContent=`Validation: ${sp.filter(s=>s.logicalSet==='Validation').length}`;
+  document.getElementById('stat-out').textContent=`Outliers: ${sp.filter(s=>s.isSpectralOutlier).length}`;
+  document.getElementById('stat-sel').textContent=S.selIdx.size?`Selected: ${S.selIdx.size}`:'';
+}
+
+// ══════════════════════════════════════════════════════════════
+// DISPLAY CONTROLS
+// ══════════════════════════════════════════════════════════════
+document.getElementById('show-filter').addEventListener('change',function(){S.showFilter=this.value;buildChart();});
+document.getElementById('color-by').addEventListener('change',function(){S.colorBy=this.value;buildChart();});
+document.getElementById('color-param').addEventListener('change',function(){
+  S.colorParam=this.value;
+  buildChart();
+  // Highlight WL ranges du param coloré
+  if(S.colorParam && S.paramSettings[S.colorParam]){
+    highlightParamRangesOnChart(S.colorParam);
+  }
+});
+// global-pre géré par la modale
+
+// ══════════════════════════════════════════════════════════════
+// APPLY SETTINGS — saves paramSettings to session for models
+// ══════════════════════════════════════════════════════════════
+document.getElementById('btn-apply-settings').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-apply-settings');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  // Save current param tab if editing
+  if (S.activeParamTab) {
+    saveParamRanges(S.activeParamTab);
+    S.paramSettings[S.activeParamTab].pre = document.getElementById('param-pre').value;
+    S.paramSettings[S.activeParamTab].useAll = document.getElementById('param-vsel-max').checked;
+  }
+  // Persist to sessionStorage immediately for models page
+  sessionStorage.setItem('dcc_param_settings', JSON.stringify(S.paramSettings));
+  sessionStorage.setItem('dcc_global_pre', document.getElementById('global-pre').value);
+  sessionStorage.setItem('dcc_global_pre_config', JSON.stringify(S.globalPreConfig||{}));
+  buildChart();
+  // Persist to Firestore project doc for cross-session persistence
+  try {
+    if (S.project?.id) {
+      await updateDoc(doc(db,'projects',S.project.id), {
+        paramSettings: S.paramSettings,
+        globalPreConfig: S.globalPreConfig || {},
+        lastSettingsUpdate: serverTimestamp()
+      });
+    }
+    btn.textContent = 'Saved ✓';
+    btn.style.background = 'var(--green)';
+    btn.style.color = '#fff';
+    toast('Settings applied and saved','success');
+    setTimeout(()=>{ btn.disabled=false; btn.textContent=orig; btn.style.background=''; btn.style.color=''; }, 1200);
+  } catch(e) {
+    console.error(e);
+    btn.disabled = false;
+    btn.textContent = orig;
+    toast('Save error: '+e.message,'error');
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// ZOOM RESET
+// ══════════════════════════════════════════════════════════════
+document.getElementById('btn-reset-zoom').addEventListener('click', () => {
+  if (S.chart) S.chart.resetZoom?.();
+});
+
+// ══════════════════════════════════════════════════════════════
+// COPY / CLOSE
+// ══════════════════════════════════════════════════════════════
+document.getElementById('ctx-copy').addEventListener('click', () => {
+  const canvas=document.getElementById('main-canvas');
+  canvas.toBlob(blob=>navigator.clipboard.write([new ClipboardItem({'image/png':blob})]));
+});
+
+// ── Zoom programmatique ──────────────────────────────────────
+window.zoomChart = function(factor) {
+  if(!S.chart||!S.chart.scales) return;
+  const xs=S.chart.scales.x,ys=S.chart.scales.y;
+  if(!xs||!ys) return;
+  const xMid=(xs.max+xs.min)/2, yMid=(ys.max+ys.min)/2;
+  const xH=(xs.max-xs.min)/2/factor, yH=(ys.max-ys.min)/2/factor;
+  S.chart.options.scales.x.min=xMid-xH; S.chart.options.scales.x.max=xMid+xH;
+  S.chart.options.scales.y.min=yMid-yH; S.chart.options.scales.y.max=yMid+yH;
+  S.chart.update('none');
+};
+window.resetChartZoom = function() {
+  if(!S.chart) return;
+  delete S.chart.options.scales.x.min; delete S.chart.options.scales.x.max;
+  delete S.chart.options.scales.y.min; delete S.chart.options.scales.y.max;
+  S.chart.update('none');
+};
+// Zoom molette — sur l'overlay qui est au-dessus
+overlay?.addEventListener('wheel', e=>{
+  e.preventDefault();
+  if(!S.chart||!S.chart.scales?.x) return;
+  const factor = e.deltaY>0 ? 0.87 : 1.15;
+  const rect = e.target.getBoundingClientRect();
+  const xVal = S.chart.scales.x.getValueForPixel(e.clientX-rect.left);
+  const yVal = S.chart.scales.y.getValueForPixel(e.clientY-rect.top);
+  const xRng=(S.chart.scales.x.max-S.chart.scales.x.min)*factor;
+  const yRng=(S.chart.scales.y.max-S.chart.scales.y.min)*factor;
+  S.chart.options.scales.x.min=xVal-xRng/2; S.chart.options.scales.x.max=xVal+xRng/2;
+  S.chart.options.scales.y.min=yVal-yRng/2; S.chart.options.scales.y.max=yVal+yRng/2;
+  S.chart.update('none');
+},{passive:false});
+// Ctrl+Z = reset zoom
+window.addEventListener('keydown',e=>{
+  if(e.ctrlKey&&(e.key==='z'||e.key==='Z')){e.preventDefault();resetChartZoom();}
+});
+
+// ══════════════════════════════════════════════════════════════
+// MODALE PRÉTRAITEMENT PIPELINE
+// ══════════════════════════════════════════════════════════════
+let _preTarget = null; // 'global' ou nom de l'élément
+let _prePipeline = []; // liste d'étapes en cours d'édition
+
+const PRE_DEFAULTS = {
+  snv: {}, detrend: {}, snv_detrend: {},
+  derivative1: {gap:16, smooth:16, order:1},
+  derivative2: {gap:16, smooth:16, order:2},
+  msc: {}, norm_01: {}, norm_sum: {},
+  mean_center: {}, autoscale: {}
+};
+const PRE_LABELS = {
+  snv:'ISI SNV', snv_detrend:'ISI SNV + Detrend', detrend:'ISI Detrend',
+  derivative1:'1st Derivative (SG)', derivative2:'2nd Derivative (SG)',
+  msc:'MSC', norm_01:'Normalize [0,1]', norm_sum:'Normalize by sum',
+  mean_center:'Mean centering', autoscale:'Autoscaling', none:'None'
+};
+
+function renderPipeline() {
+  const cont = document.getElementById('m-pre-steps');
+  if (!_prePipeline.length) {
+    cont.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:10px;text-align:center;background:var(--bg2);border-radius:3px;">No steps yet — add one below</div>';
+    return;
+  }
+  cont.innerHTML = _prePipeline.map((step, i) => {
+    let paramsHtml = '';
+    if (step.method==='derivative1' || step.method==='derivative2') {
+      paramsHtml = `
+        <div style="display:flex;gap:6px;margin-top:4px;font-size:10px;align-items:center;">
+          <label>Gap</label><input type="number" data-idx="${i}" data-k="gap" value="${step.params?.gap||16}" min="1" max="50" style="width:50px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;"/>
+          <label>Smooth</label><input type="number" data-idx="${i}" data-k="smooth" value="${step.params?.smooth||16}" min="1" max="50" style="width:50px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;"/>
+          <label>Order</label><input type="number" data-idx="${i}" data-k="order" value="${step.params?.order||(step.method==='derivative1'?1:2)}" min="0" max="3" style="width:50px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;"/>
+        </div>`;
+    }
+    return `<div style="background:var(--bg2);border-radius:4px;padding:8px 10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:10px;color:var(--text3);font-family:var(--mono);">#${i+1}</span>
+        <span style="flex:1;font-size:12px;font-weight:500;">${PRE_LABELS[step.method]}</span>
+        <button data-move-up="${i}" ${i===0?'disabled':''} style="border:1px solid var(--border);background:#fff;border-radius:2px;cursor:pointer;padding:2px 6px;font-size:11px;${i===0?'opacity:0.3;':''}">↑</button>
+        <button data-move-dn="${i}" ${i===_prePipeline.length-1?'disabled':''} style="border:1px solid var(--border);background:#fff;border-radius:2px;cursor:pointer;padding:2px 6px;font-size:11px;${i===_prePipeline.length-1?'opacity:0.3;':''}">↓</button>
+        <button data-rm="${i}" style="border:1px solid var(--red);background:#fff;color:var(--red);border-radius:2px;cursor:pointer;padding:2px 6px;font-size:11px;">×</button>
+      </div>
+      ${paramsHtml}
+    </div>`;
+  }).join('');
+
+  cont.querySelectorAll('[data-rm]').forEach(b=>b.addEventListener('click',()=>{_prePipeline.splice(+b.dataset.rm,1);renderPipeline();}));
+  cont.querySelectorAll('[data-move-up]').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.moveUp;[_prePipeline[i-1],_prePipeline[i]]=[_prePipeline[i],_prePipeline[i-1]];renderPipeline();}));
+  cont.querySelectorAll('[data-move-dn]').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.moveDn;[_prePipeline[i+1],_prePipeline[i]]=[_prePipeline[i],_prePipeline[i+1]];renderPipeline();}));
+  cont.querySelectorAll('input[data-idx]').forEach(inp=>inp.addEventListener('change',()=>{
+    const i=+inp.dataset.idx,k=inp.dataset.k;
+    if (!_prePipeline[i].params) _prePipeline[i].params = {};
+    _prePipeline[i].params[k] = parseFloat(inp.value)||0;
+  }));
+}
+
+window.openPre = function(target) {
+  _preTarget = target;
+  const m = document.getElementById('m-pre');
+  m.style.display = 'flex';
+  // Load existing pipeline from config
+  let pipeline = [];
+  if (target === 'global') {
+    document.getElementById('m-pre-title').textContent = 'Global pretreatment pipeline';
+    pipeline = S.globalPreConfig?.pipeline || (S.globalPreConfig?.method && S.globalPreConfig.method!=='none' ? [{method:S.globalPreConfig.method, params:S.globalPreConfig.params||{}}] : []);
+  } else {
+    document.getElementById('m-pre-title').textContent = `Pretreatment pipeline — ${target}`;
+    const cfg = S.paramSettings[target] || {};
+    pipeline = cfg.preConfig?.pipeline || (cfg.pre && cfg.pre!=='none' ? [{method:cfg.pre, params:cfg.preConfig?.params||{}}] : []);
+  }
+  _prePipeline = pipeline.map(s=>({method:s.method, params:{...(s.params||{})}}));
+  renderPipeline();
+};
+
+window.closePre = function() {
+  document.getElementById('m-pre').style.display = 'none';
+};
+
+window.applyPre2 = function() {
+  const pipeline = _prePipeline.map(s=>({method:s.method, params:{...s.params}}));
+  // Build the displayed label
+  const label = pipeline.length ? pipeline.map(s=>PRE_LABELS[s.method]).join(' → ') : 'None';
+  const compoundMethod = pipeline.length ? pipeline.map(s=>s.method).join('+') : 'none';
+
+  const config = { pipeline, method: compoundMethod, params: pipeline[0]?.params || {} };
+
+  if (_preTarget === 'global') {
+    S.globalPreConfig = config;
+    document.getElementById('global-pre').value = compoundMethod;
+    document.getElementById('global-pre-label').textContent = label;
+    buildChart();
+  } else {
+    const el = _preTarget;
+    if (!S.paramSettings[el]) S.paramSettings[el] = {pre:'none', useAll:true, ranges:[], preConfig:{}};
+    S.paramSettings[el].pre = compoundMethod;
+    S.paramSettings[el].preConfig = config;
+    document.getElementById('param-pre').value = compoundMethod;
+    document.getElementById('param-pre-label').textContent = label;
+    if (typeof updateParamTabStyle === 'function') updateParamTabStyle(el);
+    buildChart();
+  }
+  closePre();
+  toast('Pretreatment pipeline applied','success');
+};
+
+// Listeners
+document.getElementById('btn-open-global-pre')?.addEventListener('click', () => window.openPre('global'));
+document.getElementById('btn-param-pre')?.addEventListener('click', () => {
+  if (!S.activeParamTab) { toast('Select a parameter first','warn'); return; }
+  window.openPre(S.activeParamTab);
+});
+document.getElementById('btn-close-pre-x')?.addEventListener('click', () => window.closePre());
+document.getElementById('btn-cancel-pre')?.addEventListener('click', () => window.closePre());
+document.getElementById('btn-apply-pre')?.addEventListener('click', () => window.applyPre2());
+document.getElementById('btn-add-pre-step')?.addEventListener('click', () => {
+  const method = document.getElementById('m-pre-add-method').value;
+  _prePipeline.push({method, params: {...(PRE_DEFAULTS[method]||{})}});
+  renderPipeline();
+});
+// Fermer modale sur clic extérieur
+document.getElementById('m-pre')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('m-pre')) closePre();
+});
+
+document.getElementById('btn-close').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-close');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  try {
+    // 1. Save settings to sessionStorage for models page
+    sessionStorage.setItem('dcc_param_settings', JSON.stringify(S.paramSettings));
+    sessionStorage.setItem('dcc_global_pre', document.getElementById('global-pre')?.value||'none');
+    sessionStorage.setItem('dcc_global_pre_config', JSON.stringify(S.globalPreConfig||{}));
+
+    // 2. Save outliers to Firestore
+    if (S.selIdx.size) S.selIdx.clear(); // clear selection before save
+    const outlierCount = S.spectra.filter(s=>s.isSpectralOutlier).length;
+    btn.textContent = `Saving ${outlierCount} outlier status...`;
+    await saveOutliers(true);
+
+    btn.textContent = 'Saved ✓';
+    btn.style.background = 'var(--green)';
+    btn.style.color = '#fff';
+    toast('All settings and outliers saved','success');
+
+    // 3. Navigate after short delay to show success
+    setTimeout(() => { window.location.href = '/samples/'; }, 600);
+  } catch(e) {
+    console.error(e);
+    btn.disabled = false;
+    btn.textContent = 'Close review mode';
+    btn.style.background = '';
+    btn.style.color = '';
+    toast('Save error: '+e.message,'error');
+  }
+});
+</script>
+
+</body>
+</html>

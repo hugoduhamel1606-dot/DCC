@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DCC — Connexion</title>
+<link rel="stylesheet" href="/shared/style.css"/>
+<style>
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
+.login-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r2);padding:38px 42px;width:360px;box-shadow:var(--shadow2);}
+.brand{text-align:center;margin-bottom:30px;}
+.brand-name{display:block;font-size:40px;font-weight:600;letter-spacing:-1px;color:var(--blue);}
+.brand-sub{display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-top:4px;}
+.btn-login{width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-weight:500;cursor:pointer;font-size:13px;margin-top:4px;transition:background 0.15s;}
+.btn-login:hover{background:var(--blue2);}
+.btn-login:disabled{opacity:0.6;cursor:default;}
+.err{font-size:12px;color:var(--red);text-align:center;margin-top:8px;min-height:16px;}
+</style>
+</head>
+<body>
+<div class="login-card">
+  <div class="brand">
+    <span class="brand-name">DCC</span>
+    <span class="brand-sub">Data Calculator Calibration</span>
+  </div>
+  <div class="field">
+    <label>Identifiant</label>
+    <input type="email" id="em" placeholder="prenom.nom@dubernet.com" autocomplete="username"/>
+  </div>
+  <div class="field">
+    <label>Mot de passe</label>
+    <input type="password" id="pw" placeholder="••••••••" autocomplete="current-password"/>
+  </div>
+  <button class="btn-login" id="li-btn">Connexion</button>
+  <div class="err" id="err"></div>
+</div>
+<div id="toast"></div>
+
+<script type="module">
+import { auth, bootstrapAdmins, toast } from '/shared/auth.js';
+import { signInWithEmailAndPassword, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+
+// Déjà connecté → redirect
+onAuthStateChanged(auth, user => {
+  if (user) window.location.href = '/projects/';
+});
+
+// Bootstrap admins (crée les comptes si premier lancement)
+bootstrapAdmins();
+
+const btn = document.getElementById('li-btn');
+const err = document.getElementById('err');
+
+async function doLogin() {
+  const em = document.getElementById('em').value.trim();
+  const pw = document.getElementById('pw').value;
+  err.textContent = '';
+  if (!em || !pw) { err.textContent = 'Remplissez tous les champs.'; return; }
+  btn.disabled = true; btn.textContent = 'Connexion...';
+  try {
+    await signInWithEmailAndPassword(auth, em, pw);
+    window.location.href = '/projects/';
+  } catch(e) {
+    const code = e.code || '';
+    if (code === 'auth/too-many-requests') err.textContent = 'Trop de tentatives. Réessayez plus tard.';
+    else if (code === 'auth/network-request-failed') err.textContent = 'Erreur réseau.';
+    else err.textContent = 'Identifiants incorrects.';
+    btn.disabled = false; btn.textContent = 'Connexion';
+    document.getElementById('pw').value = '';
+  }
+}
+
+btn.addEventListener('click', doLogin);
+['em','pw'].forEach(id => document.getElementById(id).addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+}));
+</script>
+</body>
+</html>

@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DCC — Samples</title>
+<link rel="stylesheet" href="/shared/style.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+.proj-banner{background:var(--blue);color:#fff;font-size:12px;padding:5px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.proj-banner a{color:rgba(255,255,255,0.75);text-decoration:none;font-size:11px;}
+.proj-banner a:hover{color:#fff;}
+.saving-ind{font-size:11px;color:rgba(255,255,255,0.7);margin-left:auto;}
+
+/* Sample sets table */
+.ss-hd{display:grid;grid-template-columns:1fr 70px 70px 70px 130px 110px 28px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.ss-hd div,.ss-cell{padding:5px 10px;font-size:12px;border-right:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ss-hd div{font-size:11px;font-weight:500;color:var(--text2);}
+.ss-row{display:grid;grid-template-columns:1fr 70px 70px 70px 130px 110px 28px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;background:var(--white);}
+.ss-row:hover{background:var(--blue-light);}
+.ss-row.sel{background:#d6e4f7;}
+.ss-cell{color:var(--text2);border-right:1px solid var(--bg2);font-family:var(--mono);}
+.ss-cell.nm{font-family:var(--font);color:var(--text);}
+
+/* Params table */
+.p-hd{display:grid;grid-template-columns:80px 80px 65px 75px 80px 70px 70px 70px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.p-hd div{font-size:11px;font-weight:500;color:var(--text2);padding:5px 8px;border-right:1px solid var(--border);white-space:nowrap;}
+.p-row{display:grid;grid-template-columns:80px 80px 65px 75px 80px 70px 70px 70px;border-bottom:1px solid var(--bg2);cursor:pointer;transition:background 0.1s;}
+.p-row:hover{background:var(--blue-light);}
+.p-row.sel{background:#d6e4f7;}
+.p-cell{padding:5px 8px;font-size:12px;color:var(--text2);border-right:1px solid var(--bg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);}
+.p-cell.nm{font-family:var(--font);font-weight:500;color:var(--text);}
+.p-cell.unit{font-family:var(--font);font-size:11px;color:var(--text3);}
+
+/* Chart panels */
+.chart-panel{background:var(--white);border-bottom:1px solid var(--border);display:flex;flex-direction:column;flex:1;min-height:0;}
+.chart-panel-hd{padding:5px 10px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.chart-panel-title{font-size:11px;font-weight:500;color:var(--text2);}
+.chart-expand-btn{font-size:11px;color:var(--text3);cursor:pointer;padding:1px 4px;border:none;background:none;}
+.chart-expand-btn:hover{color:var(--blue);}
+.chart-body{flex:1;padding:8px;position:relative;min-height:0;}
+
+/* Summary legend */
+.sum-legend{position:absolute;top:8px;right:12px;background:rgba(255,255,255,0.96);border:1px solid var(--border);border-radius:var(--r);padding:6px 8px;z-index:5;min-width:80px;}
+.leg-item{display:flex;align-items:center;gap:5px;padding:2px 0;cursor:pointer;font-size:11px;color:var(--text2);user-select:none;}
+.leg-dot{width:14px;height:3px;border-radius:2px;flex-shrink:0;}
+.leg-cb{width:12px;height:12px;border:1px solid var(--border2);border-radius:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.leg-cb.on{background:var(--blue);border-color:var(--blue);}
+.leg-cb.on::after{content:'';width:6px;height:6px;background:#fff;border-radius:1px;}
+
+/* Fullscreen */
+#fs-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:300;display:none;flex-direction:column;}
+#fs-overlay.on{display:flex;}
+#fs-hd{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border-bottom:1px solid var(--border);}
+#fs-title{font-size:13px;font-weight:500;color:var(--text);}
+#fs-close{background:none;border:1px solid var(--border);border-radius:var(--r);color:var(--text2);cursor:pointer;padding:4px 12px;font-size:12px;}
+#fs-body{flex:1;background:var(--white);padding:16px;position:relative;}
+#fs-legend{position:absolute;top:16px;right:20px;background:rgba(255,255,255,0.97);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;z-index:5;}
+
+/* Load bar */
+.load-bar{height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;margin:4px 10px;}
+.load-bar-fill{height:100%;background:var(--blue);border-radius:2px;transition:width 0.3s;width:0%;}
+
+/* Spectra management modal */
+.sp-item{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--bg2);font-size:12px;}
+.sp-item:hover{background:var(--blue-light);}
+.sp-item-id{font-family:var(--mono);color:var(--text);}
+.sp-item-set{font-size:10px;color:var(--text3);}
+.sp-search{width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:12px;outline:none;margin-bottom:8px;}
+.sp-search:focus{border-color:var(--blue);}
+
+/* Match results */
+.match-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid var(--bg2);}
+.match-found{color:var(--green);}
+.match-missing{color:var(--orange);}
+</style>
+</head>
+<body>
+<div id="topbar-mount"></div>
+<div class="page-body">
+
+  <!-- Banner -->
+  <div class="proj-banner">
+    <a href="/projects/">&#8592; Projects</a>
+    <span id="proj-name">No project selected</span>
+    <div class="saving-ind" id="saving-ind"></div>
+  </div>
+
+  <!-- Sub-tabs -->
+  <div class="sub-bar">
+    <div class="sub-tab on"  data-st="overview">Sample set overview</div>
+    <div class="sub-tab"     data-st="params">Parameter details</div>
+    <div class="sub-tab"     data-st="rawdata">Raw data</div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="btn primary" id="btn-file">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      File / Reference
+    </button>
+    <button class="btn" id="btn-manage">Manage spectra</button>
+    <button class="btn" id="btn-sel-params" disabled>Select parameters</button>
+    <button class="btn" id="btn-spectra"    disabled onclick="window.location.href='/samples/review.html'">Spectra</button>
+    <button class="btn primary" id="btn-pca" disabled onclick="window.location.href='/samples/pca.html'">PCA</button>
+    <button class="btn" id="btn-autoclean"  disabled>Autoclean</button>
+    <div style="border-left:1px solid var(--border);height:20px;margin:0 6px;"></div>
+    <button class="btn btn-sm" id="btn-yunit" style="font-size:10px;" title="Basculer l'unité de l'axe Y">
+      Y: <span id="yunit-label">Emission (EU)</span>
+    </button>
+  </div>
+
+  <!-- ── OVERVIEW ──────────────────────────────────────────────── -->
+  <div id="st-overview" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+    <div class="split" style="flex:1;">
+      <div class="split-main" style="display:flex;flex-direction:column;">
+
+        <!-- Sample sets -->
+        <div class="panel" style="flex:1;min-height:0;">
+          <div class="ss-hd">
+            <div>Samples sets</div>
+            <div style="text-align:center;">Samples</div>
+            <div style="text-align:center;">Unique</div>
+            <div style="text-align:center;">Outliers</div>
+            <div>Range</div>
+            <div>Split rule</div>
+            <div></div>
+          </div>
+          <div id="load-bar-wrap" style="display:none;">
+            <div class="load-bar"><div class="load-bar-fill" id="load-bar-fill"></div></div>
+            <div style="font-size:11px;color:var(--text3);padding:2px 10px;" id="load-status">Chargement...</div>
+          </div>
+          <div class="panel-body" id="ss-list">
+            <div class="panel-empty">Import a samples set to get started</div>
+          </div>
+        </div>
+
+        <div style="height:3px;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-shrink:0;"></div>
+
+        <!-- Selected parameters -->
+        <div class="panel" style="flex:1;min-height:0;">
+          <div class="p-hd">
+            <div>Element</div><div>Unit</div>
+            <div style="text-align:center;">Samples</div>
+            <div style="text-align:center;">N(training)</div>
+            <div style="text-align:center;">N(validation)</div>
+            <div style="text-align:center;">Min</div>
+            <div style="text-align:center;">Max</div>
+            <div style="text-align:center;">Mean</div>
+          </div>
+          <div class="panel-body" id="sel-params-list">
+            <div class="panel-empty">Select parameters after import</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right panels -->
+      <div class="split-side" style="display:flex;flex-direction:column;">
+        <div class="chart-panel">
+          <div class="chart-panel-hd">
+            <span class="chart-panel-title">Summary</span>
+            <button class="chart-expand-btn" onclick="openFS('summary')" title="Plein écran">&#x2922;</button>
+          </div>
+          <div class="chart-body" id="summary-body">
+            <div class="panel-empty" id="summary-empty">Select a samples set<br/>to get a summary plot of spectra</div>
+            <canvas id="c-summary" style="display:none;width:100%;height:100%;"></canvas>
+            <div class="sum-legend" id="sum-legend" style="display:none;">
+              <div class="leg-item" data-line="mean"><div class="leg-cb on" id="cb-mean"></div><div class="leg-dot" style="background:#1e5fa8;"></div>Mean</div>
+              <div class="leg-item" data-line="std"><div class="leg-cb on" id="cb-std"></div><div class="leg-dot" style="background:#2e7d52;"></div>Std</div>
+              <div class="leg-item" data-line="max"><div class="leg-cb on" id="cb-max"></div><div class="leg-dot" style="background:#c45c00;"></div>Max</div>
+              <div class="leg-item" data-line="min"><div class="leg-cb on" id="cb-min"></div><div class="leg-dot" style="background:#888;"></div>Min</div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-panel">
+          <div class="chart-panel-hd">
+            <span class="chart-panel-title">Distribution</span>
+            <button class="chart-expand-btn" onclick="openFS('dist')" title="Plein écran">&#x2922;</button>
+          </div>
+          <div class="chart-body" id="dist-body">
+            <div class="panel-empty" id="dist-empty">Select a parameter<br/>to get a distribution plot</div>
+            <canvas id="c-dist" style="display:none;width:100%;height:100%;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PARAMS DETAIL ──────────────────────────────────────────── -->
+  <div id="st-params" style="flex:1;overflow:hidden;display:none;flex-direction:column;">
+
+    <!-- Parameter details toolbar — like FossCalibrator -->
+    <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:4px 10px;display:flex;align-items:center;gap:6px;flex-shrink:0;">
+      <!-- Parameter selector -->
+      <select id="pdet-param" style="border:1px solid var(--border);border-radius:var(--r);padding:3px 8px;font-size:12px;background:var(--white);color:var(--text);outline:none;min-width:100px;">
+        <option value="">— Element —</option>
+      </select>
+      <div style="height:18px;width:1px;background:var(--border);margin:0 2px;"></div>
+      <!-- PCA button -->
+      <button class="btn" id="pdet-pca" style="font-size:11px;" onclick="launchPCA()">PCA</button>
+      <!-- Spectra button -->
+      <button class="btn" id="pdet-spectra" style="font-size:11px;" onclick="window.location.href='/samples/review.html'">Spectra</button>
+      <div style="height:18px;width:1px;background:var(--border);margin:0 2px;"></div>
+      <!-- Show filter -->
+      <select id="pdet-show" style="border:1px solid var(--border);border-radius:var(--r);padding:3px 8px;font-size:12px;background:var(--white);color:var(--text);outline:none;">
+        <option value="all">Show All</option>
+        <option value="training">Training</option>
+        <option value="validation">Validation</option>
+      </select>
+      <!-- PLS button — blue, prominent -->
+      <button class="btn primary" id="pdet-pls" style="font-size:12px;font-weight:500;padding:5px 14px;" onclick="launchPLS()">
+        PLS &#9654;
+      </button>
+      <div style="height:18px;width:1px;background:var(--border);margin:0 2px;"></div>
+      <span style="font-size:11px;color:var(--text3);">Review samples</span>
+    </div>
+
+    <!-- Logical sets table (Training / Validation / All) -->
+    <div style="border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="display:grid;grid-template-columns:1fr 80px 80px 80px 80px 80px 80px;background:var(--bg2);border-bottom:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:500;color:var(--text2);padding:5px 10px;border-right:1px solid var(--border);">Logical sets</div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);padding:5px 8px;text-align:center;border-right:1px solid var(--border);">Samples</div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);padding:5px 8px;text-align:center;border-right:1px solid var(--border);">Unique</div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);padding:5px 8px;text-align:center;border-right:1px solid var(--border);">Min</div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);padding:5px 8px;text-align:center;border-right:1px solid var(--border);">Max</div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);padding:5px 8px;text-align:center;border-right:1px solid var(--border);">Mean</div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);padding:5px 8px;text-align:center;">Std</div>
+      </div>
+      <div id="logical-sets-list"></div>
+    </div>
+
+    <div class="split" style="flex:1;">
+      <div class="split-main" style="display:flex;flex-direction:column;">
+        <div class="panel" style="flex:1;min-height:0;">
+          <div class="p-hd">
+            <div>Element</div><div>Unit</div>
+            <div style="text-align:center;">N</div>
+            <div style="text-align:center;">N(train)</div>
+            <div style="text-align:center;">N(valid)</div>
+            <div style="text-align:center;">Min</div>
+            <div style="text-align:center;">Max</div>
+            <div style="text-align:center;">Std</div>
+          </div>
+          <div class="panel-body" id="params-det-list"></div>
+        </div>
+      </div>
+      <div class="split-side" style="display:flex;flex-direction:column;">
+        <div class="chart-panel"><div class="chart-panel-hd"><span class="chart-panel-title">Summary</span><button class="chart-expand-btn" onclick="openFS('summary2')">&#x2922;</button></div><div class="chart-body"><canvas id="c-summary2" style="width:100%;height:100%;"></canvas></div></div>
+        <div class="chart-panel"><div class="chart-panel-hd"><span class="chart-panel-title">Distribution</span><button class="chart-expand-btn" onclick="openFS('dist2')">&#x2922;</button></div><div class="chart-body"><canvas id="c-dist2" style="width:100%;height:100%;"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RAW DATA ───────────────────────────────────────────────── -->
+  <div id="st-rawdata" style="flex:1;overflow:hidden;display:none;flex-direction:column;">
+    <div class="toolbar" style="border-top:none;">
+      <select id="raw-filter" class="btn" style="border:1px solid var(--border);">
+        <option>All</option><option>Training</option><option>Validation</option>
+        <option>Spectral outliers</option><option>Reference outliers</option>
+      </select>
+      <select id="raw-param" class="btn" style="border:1px solid var(--border);min-width:120px;">
+        <option value="">All parameters</option>
+      </select>
+      <span style="font-size:11px;color:var(--text3);" id="raw-count"></span>
+    </div>
+    <div class="panel" style="flex:1;min-height:0;overflow:hidden;">
+      <div style="overflow:auto;height:100%;"><table class="tbl"><thead id="raw-thead"></thead><tbody id="raw-tbody"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FULLSCREEN ─────────────────────────────────────────────── -->
+<div id="fs-overlay">
+  <div id="fs-hd">
+    <span id="fs-title">Chart</span>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="font-size:11px;color:var(--text3);">Scroll = zoom &middot; Ctrl+drag = pan</span>
+      <button id="fs-close">&#x2715; Fermer</button>
+    </div>
+  </div>
+  <div id="fs-body">
+    <canvas id="c-fs" style="width:100%;height:100%;"></canvas>
+    <div id="fs-legend" style="display:none;">
+      <div class="leg-item" data-fsline="mean"><div class="leg-cb on" id="fs-cb-mean"></div><div class="leg-dot" style="background:#1e5fa8;"></div>Mean</div>
+      <div class="leg-item" data-fsline="std"><div class="leg-cb on" id="fs-cb-std"></div><div class="leg-dot" style="background:#2e7d52;"></div>Std</div>
+      <div class="leg-item" data-fsline="max"><div class="leg-cb on" id="fs-cb-max"></div><div class="leg-dot" style="background:#c45c00;"></div>Max</div>
+      <div class="leg-item" data-fsline="min"><div class="leg-cb on" id="fs-cb-min"></div><div class="leg-dot" style="background:#888;"></div>Min</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── IMPORT SPECTRAL FILE ───────────────────────────────────── -->
+<!-- ── IMPORT (spectres + ref en onglets) ───────────────────── -->
+<div class="overlay" id="m-import">
+  <div class="modal modal-lg">
+    <!-- Onglets -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:14px;">
+      <div id="tab-spec" onclick="switchImportTab('spec')" style="padding:8px 16px;cursor:pointer;font-size:12px;font-weight:500;color:var(--blue);border-bottom:2px solid var(--blue);">Spectral file</div>
+      <div id="tab-ref"  onclick="switchImportTab('ref')"  style="padding:8px 16px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text3);border-bottom:2px solid transparent;">Reference values</div>
+    </div>
+
+    <!-- Panneau Spectres -->
+    <div id="pane-spec">
+      <div class="field">
+        <label>Fichier spectral (.dx / .cal)</label>
+        <div style="display:flex;gap:6px;">
+          <input type="text" id="imp-fname" placeholder="Select file..." readonly style="flex:1;"/>
+          <input type="file" id="imp-file" accept=".dx,.cal,.txt" style="display:none;"/>
+          <button class="btn" onclick="document.getElementById('imp-file').click()">Browse...</button>
+        </div>
+      </div>
+      <div id="imp-info" style="font-size:11px;color:var(--text3);margin:-6px 0 10px;min-height:14px;"></div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div class="field" style="margin:0;">
+          <label>Split rule</label>
+          <select id="imp-split">
+            <option value="time">Split time based</option>
+            <option value="training">Training only</option>
+            <option value="validation">Validation only</option>
+            <option value="random">Split random</option>
+            <option value="distribution">Split and retain parameter distribution</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0;" id="train-wrap">
+          <label>Training (%)</label>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <input type="number" id="imp-train" value="80" min="10" max="95" style="width:55px;"/>
+            <span style="font-size:11px;color:var(--text3);">%</span>
+          </div>
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Validation (%)</label>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <input type="number" id="imp-val" value="20" readonly style="width:55px;"/>
+            <span style="font-size:11px;color:var(--text3);">%</span>
+          </div>
+        </div>
+      </div>
+      <!-- Option: exclure spectres sans référence -->
+      <label class="check-row" style="margin-bottom:12px;">
+        <input type="checkbox" id="imp-exclude-noref" style="accent-color:var(--blue);">
+        Exclure les spectres sans valeur de référence
+        <span id="noref-count" style="color:var(--text3);font-size:11px;margin-left:4px;"></span>
+      </label>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="imp-cancel">Cancel</button>
+        <button class="btn-ok" id="imp-ok">Import</button>
+      </div>
+    </div>
+
+    <!-- Panneau Références -->
+    <div id="pane-ref" style="display:none;">
+      <div class="field">
+        <label>Fichier REF (.xlsx, .csv)</label>
+        <div style="display:flex;gap:6px;">
+          <input type="text" id="ref-fname" placeholder="Select file..." readonly style="flex:1;"/>
+          <input type="file" id="ref-file" accept=".xlsx,.csv,.txt" style="display:none;"/>
+          <button class="btn" onclick="document.getElementById('ref-file').click()">Browse...</button>
+        </div>
+      </div>
+      <div id="ref-info" style="font-size:11px;color:var(--text3);margin:-6px 0 10px;min-height:14px;"></div>
+      <label class="check-row" style="margin-bottom:14px;">
+        <input type="checkbox" id="ref-match" checked style="accent-color:var(--blue);">
+        Faire correspondre avec les ID des spectres importés
+      </label>
+      <div id="ref-match-preview" style="display:none;border:1px solid var(--border);border-radius:var(--r);padding:10px;margin-bottom:12px;max-height:160px;overflow:auto;font-size:12px;">
+        <div id="ref-match-stats" style="margin-bottom:8px;font-weight:500;"></div>
+        <div id="ref-match-list"></div>
+      </div>
+      <label class="check-row" style="margin-bottom:10px;">
+        <input type="checkbox" id="ref-zero"> Include zero values as actual values
+      </label>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="ref-cancel">Cancel</button>
+        <button class="btn-ok" id="ref-ok">Import references</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- m-ref alias pour compatibilité -->
+<div id="m-ref" style="display:none;"></div>
+
+<!-- ── MANAGE SPECTRA ─────────────────────────────────────────── -->
+<div class="overlay" id="m-manage">
+  <div class="modal modal-lg">
+    <div class="modal-title">Manage spectra</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <input type="text" class="sp-search" id="manage-search" placeholder="Rechercher par ID d'échantillon..." style="flex:1;margin:0;"/>
+      <select id="manage-filter" class="btn" style="border:1px solid var(--border);">
+        <option value="all">Tous</option>
+        <option value="training">Training</option>
+        <option value="validation">Validation</option>
+        <option value="outlier">Outliers</option>
+        <option value="ref">Avec référence</option>
+        <option value="noref">Sans référence</option>
+      </select>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:12px;color:var(--text2);" id="manage-count">— spectres</span>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm danger" id="btn-delete-selected">Supprimer la sélection</button>
+        <button class="btn btn-sm primary" id="btn-add-dx">+ Ajouter un fichier .dx</button>
+        <input type="file" id="add-dx-file" accept=".dx,.cal" style="display:none;"/>
+      </div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;max-height:320px;overflow-y:auto;" id="manage-list"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="manage-close">Fermer</button>
+      <button class="btn-ok" id="manage-save">Sauvegarder les modifications</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SELECT PARAMETERS ──────────────────────────────────────── -->
+<div class="overlay" id="m-params">
+  <div class="modal">
+    <div class="modal-title">Select parameters for calculation</div>
+    <div style="text-align:right;margin-bottom:6px;">
+      <label class="check-row" style="justify-content:flex-end;"><input type="checkbox" id="sp-all"> Select all</label>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px;">
+      <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:5px 10px;font-size:11px;font-weight:500;color:var(--text2);">Parameters</div>
+      <div id="sp-list" style="max-height:240px;overflow:auto;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="sp-cancel">Cancel</button>
+      <button class="btn-ok" id="sp-ok">Import</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { auth, db, requireAuth, setupLogout, fillTopbarUser, toast, showModal, hideModal } from '/shared/auth.js';
+function sanitize(s){if(s==null)return'—';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function validateProjectName(n){return n&&n.trim().length>0&&n.length<=100;}
+import { renderTopbar } from '/shared/topbar.js';
+import { ELEMENTS } from '/shared/config.js';
+import { collection, doc, setDoc, getDocs, getDoc, deleteDoc,
+         updateDoc, writeBatch, query, startAfter, limit, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+document.getElementById('topbar-mount').innerHTML = renderTopbar('samples');
+setupLogout('btn-logout');
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
+
+// ── Element units from REF file ────────────────────────────────
+const ELEM_UNITS = {
+  B:'ppm', Ca:'g/kg', Cu:'ppm', Fe:'ppm',
+  K:'g/kg', Mg:'g/kg', Mn:'ppm', Na:'ppm', P:'g/kg', Zn:'ppm',
+  Boron:'ppm', Calcium:'g/kg', Copper:'ppm', Iron:'ppm',
+  Magnesium:'g/kg', Manganese:'ppm', Phosphorus:'g/kg',
+  Potassium:'g/kg', Sodium:'ppm', Zinc:'ppm'
+};
+
+// Column name → element code mapping
+const COL_TO_ELEM = {
+  Boron:'B', Calcium:'Ca', Copper:'Cu', Iron:'Fe',
+  Magnesium:'Mg', Manganese:'Mn', Phosphorus:'P',
+  Potassium:'K', Sodium:'Na', Zinc:'Zn',
+  B:'B', Ca:'Ca', Cu:'Cu', Fe:'Fe', K:'K',
+  Mg:'Mg', Mn:'Mn', Na:'Na', P:'P', Zn:'Zn'
+};
+
+// ── State ──────────────────────────────────────────────────────
+const S = {
+  user:null, project:null, ssId:null,
+  sampleSets:[], selSS:null,
+  spectra:[], selParams:[],
+  selParam:null,
+  summaryVis:{mean:true,std:true,max:true,min:true},
+  yUnit:'Emission (EU)',   // or 'Absorbance / log(1/R)'
+  manageSelected: new Set(),
+  pendingDX: null,
+  pendingRef: null,
+  refColumns: []
+};
+const Charts = {};
+
+// ── Auth + load ────────────────────────────────────────────────
+requireAuth(async (user, profile) => {
+  S.user = user;
+  fillTopbarUser(profile);
+  const proj = JSON.parse(sessionStorage.getItem('dcc_project_'+(user.uid||'x'))||sessionStorage.getItem('dcc_project')||'null');
+  if (!proj) { document.getElementById('proj-name').textContent='No project — go to Projects first'; return; }
+  S.project = proj;
+  document.getElementById('proj-name').textContent = proj.name;
+  await loadFromFirestore(proj.id);
+});
+
+// ── Load from Firestore (all spectra, paginated) ───────────────
+async function loadFromFirestore(projectId) {
+  setSaving('Loading...');
+  showLoadBar(true);
+  try {
+    const ssSnap = await getDocs(collection(db,'projects',projectId,'sampleSets'));
+    S.sampleSets = ssSnap.docs.map(d=>({id:d.id,...d.data()}));
+    S.selSS = S.sampleSets[0]||null;
+    if (S.sampleSets[0]) S.ssId = S.sampleSets[0].id;
+    S.spectra = [];
+
+    for (const ss of S.sampleSets) {
+      const colRef = collection(db,'projects',projectId,'sampleSets',ss.id,'spectra');
+      let lastDoc=null, loaded=0;
+      const total = ss.samples||0;
+      while (true) {
+        const q = lastDoc
+          ? query(colRef, startAfter(lastDoc), limit(200))
+          : query(colRef, limit(200));
+        const snap = await getDocs(q);
+        if (snap.empty) break;
+        S.spectra.push(...snap.docs.map(d=>d.data()));
+        lastDoc = snap.docs[snap.docs.length-1];
+        loaded += snap.docs.length;
+        setLoadProgress(total?Math.round(loaded/total*100):50, `${loaded}${total?' / '+total:''} spectres chargés`);
+        if (snap.docs.length < 200) break;
+      }
+    }
+
+    S.selParams = ELEMENTS.filter(el=>S.spectra.some(s=>s.referenceValues?.[el]!==undefined));
+    enableToolbar();
+    renderSSList(); renderSelParams(); renderSummary(); renderRawHeader(); renderRawData();
+    setSaving(''); showLoadBar(false);
+    toast(`${S.spectra.length} spectres chargés`,'success');
+  } catch(e) {
+    setSaving(''); showLoadBar(false);
+    toast('Erreur : '+e.message,'error'); console.error(e);
+  }
+}
+
+function setSaving(m){document.getElementById('saving-ind').textContent=m;}
+function showLoadBar(on){document.getElementById('load-bar-wrap').style.display=on?'block':'none';}
+function setLoadProgress(p,m){document.getElementById('load-bar-fill').style.width=p+'%';document.getElementById('load-status').textContent=m;}
+function enableToolbar(){['btn-sel-params','btn-spectra','btn-pca','btn-autoclean'].forEach(id=>document.getElementById(id).disabled=false);}
+
+// ── Sub-tabs ───────────────────────────────────────────────────
+document.querySelectorAll('[data-st]').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('[data-st]').forEach(x=>x.classList.remove('on'));
+  ['overview','params','rawdata'].forEach(n=>{const el=document.getElementById('st-'+n);if(el){el.style.display='none';}});
+  t.classList.add('on');
+  const el=document.getElementById('st-'+t.dataset.st);
+  if(el){el.style.display='flex';el.style.flexDirection='column';}
+  if(t.dataset.st==='rawdata') renderRawData();
+  if(t.dataset.st==='params')  renderParamsDet();
+}));
+
+// ── Y axis unit toggle ─────────────────────────────────────────
+document.getElementById('btn-yunit').addEventListener('click',()=>{
+  S.yUnit = S.yUnit==='Emission (EU)' ? 'Absorbance / log(1/R)' : 'Emission (EU)';
+  document.getElementById('yunit-label').textContent = S.yUnit;
+  renderSummary();
+  if(S.selParam) renderDist('c-dist','dist-empty',S.selParam);
+});
+
+// ── Sample sets list ───────────────────────────────────────────
+function renderSSList(){
+  const el=document.getElementById('ss-list');
+  if(!S.sampleSets.length){el.innerHTML='<div class="panel-empty">Import a samples set to get started</div>';return;}
+  el.innerHTML=S.sampleSets.map(ss=>`
+    <div class="ss-row${S.selSS?.id===ss.id?' sel':''}" data-ssid="${ss.id}">
+      <div class="ss-cell nm">${ss.name}</div>
+      <div class="ss-cell" style="text-align:center;">${ss.samples}</div>
+      <div class="ss-cell" style="text-align:center;">${ss.unique||ss.samples}</div>
+      <div class="ss-cell" style="text-align:center;">${ss.outliers||'0/0'}</div>
+      <div class="ss-cell">${ss.range||'—'}</div>
+      <div class="ss-cell" style="font-size:11px;">${ss.splitRule||'—'}</div>
+      <div class="ss-cell" style="padding:3px;text-align:center;">
+        <button class="btn btn-icon" style="font-size:11px;color:var(--red);" onclick="event.stopPropagation();deleteSSRow('${ss.id}')">&#x2715;</button>
+      </div>
+    </div>
+  `).join('');
+  el.querySelectorAll('[data-ssid]').forEach(r=>r.addEventListener('click',e=>{
+    if(e.target.tagName==='BUTTON')return;
+    S.selSS=S.sampleSets.find(s=>s.id===r.dataset.ssid)||null;
+    renderSSList();renderSummary();
+  }));
+}
+window.deleteSSRow=id=>{S.sampleSets=S.sampleSets.filter(s=>s.id!==id);if(S.selSS?.id===id)S.selSS=null;renderSSList();};
+
+// ── Selected params ────────────────────────────────────────────
+function renderSelParams(){
+  const el=document.getElementById('sel-params-list');
+  if(!S.selParams.length||!S.spectra.length){el.innerHTML='<div class="panel-empty">Import data and select parameters</div>';return;}
+  el.innerHTML=S.selParams.map(param=>{
+    const vals=S.spectra.filter(s=>s.referenceValues?.[param]!==undefined);
+    const tv=vals.filter(s=>s.logicalSet==='Training').map(s=>s.referenceValues[param]);
+    const vv=vals.filter(s=>s.logicalSet==='Validation').map(s=>s.referenceValues[param]);
+    const all=vals.map(s=>s.referenceValues[param]);
+    if(!all.length)return'';
+    const mn=Math.min(...all),mx=Math.max(...all),mean=all.reduce((a,b)=>a+b,0)/all.length;
+    return`<div class="p-row${S.selParam===param?' sel':''}" data-param="${param}">
+      <div class="p-cell nm">${param}</div>
+      <div class="p-cell unit">${ELEM_UNITS[param]||'—'}</div>
+      <div class="p-cell" style="text-align:right;">${all.length}</div>
+      <div class="p-cell" style="text-align:right;">${tv.length}</div>
+      <div class="p-cell" style="text-align:right;">${vv.length}</div>
+      <div class="p-cell" style="text-align:right;">${mn.toFixed(3)}</div>
+      <div class="p-cell" style="text-align:right;">${mx.toFixed(3)}</div>
+      <div class="p-cell" style="text-align:right;">${mean.toFixed(3)}</div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('[data-param]').forEach(r=>r.addEventListener('click',()=>{
+    S.selParam=r.dataset.param;renderSelParams();renderDist('c-dist','dist-empty',r.dataset.param);
+  }));
+}
+
+// ── SUMMARY CHART (Emission EU or Absorbance) ──────────────────
+function renderSummary(){
+  const empty=document.getElementById('summary-empty');
+  const canvas=document.getElementById('c-summary');
+  const legend=document.getElementById('sum-legend');
+  const sp=S.spectra;
+  if(!sp.length||!sp[0].wavelengths){
+    empty.style.display='flex';canvas.style.display='none';legend.style.display='none';return;
+  }
+  empty.style.display='none';canvas.style.display='block';legend.style.display='block';
+  buildSummaryChart('c-summary',sp,S.summaryVis);
+}
+
+function buildSummaryChart(cid, sp, vis){
+  if(!sp.length||!sp[0].wavelengths)return;
+  const step=Math.max(1,Math.floor(sp[0].wavelengths.length/160));
+  const wl=sp[0].wavelengths.filter((_,i)=>i%step===0);
+  const n=sp.length;
+  const getInt=(s,k)=>{
+    let v=s.intensities[k*step]||0;
+    if(S.yUnit==='Absorbance / log(1/R)') v = v>0 ? Math.log10(1/v) : 0;
+    return v;
+  };
+  const meanArr=wl.map((_,k)=>sp.reduce((s,s2)=>s+getInt(s2,k),0)/n);
+  const maxArr =wl.map((_,k)=>Math.max(...sp.map(s=>getInt(s,k))));
+  const minArr =wl.map((_,k)=>Math.min(...sp.map(s=>getInt(s,k))));
+  const stdArr =wl.map((_,k)=>{const vals=sp.map(s=>getInt(s,k));const m=vals.reduce((a,b)=>a+b,0)/n;return Math.sqrt(vals.reduce((ss,v)=>ss+(v-m)**2,0)/n);});
+
+  const datasets=[];
+  sp.slice(0,300).forEach(s=>{
+    datasets.push({
+      data:s.intensities.filter((_,i)=>i%step===0).map(v=>S.yUnit==='Absorbance / log(1/R)'?(v>0?Math.log10(1/v):0):v),
+      borderColor:s.isSpectralOutlier?'rgba(196,92,0,0.4)':
+                  s.logicalSet==='Validation'?'rgba(30,150,100,0.15)':'rgba(26,79,140,0.12)',
+      borderWidth:0.8,pointRadius:0,fill:false,tension:0,label:''
+    });
+  });
+  if(vis.mean) datasets.push({label:'Mean',data:meanArr,borderColor:'#1e5fa8',borderWidth:2,pointRadius:0,fill:false,tension:0});
+  if(vis.std)  datasets.push({label:'Std', data:meanArr.map((v,i)=>v+stdArr[i]),borderColor:'#2e7d52',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,tension:0});
+  if(vis.max)  datasets.push({label:'Max', data:maxArr,borderColor:'#c45c00',borderWidth:1.2,borderDash:[2,4],pointRadius:0,fill:false,tension:0});
+  if(vis.min)  datasets.push({label:'Min', data:minArr,borderColor:'#888',borderWidth:1.2,borderDash:[2,4],pointRadius:0,fill:false,tension:0});
+
+  if(Charts[cid])Charts[cid].destroy();
+  const c=document.getElementById(cid);if(!c)return;
+  Charts[cid]=new Chart(c,{type:'line',data:{labels:wl,datasets},options:{
+    animation:false,responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{title:{display:true,text:'Wavelength (nm)',color:'#8a909e',font:{size:10}},ticks:{maxTicksLimit:8,color:'#8a909e',font:{size:9}},grid:{color:'rgba(0,0,0,0.04)'}},
+      y:{title:{display:true,text:S.yUnit,color:'#8a909e',font:{size:10}},ticks:{maxTicksLimit:6,color:'#8a909e',font:{size:9}},grid:{color:'rgba(0,0,0,0.04)'}}
+    }
+  }});
+}
+
+// Legend toggles
+document.querySelectorAll('[data-line]').forEach(item=>{
+  item.addEventListener('click',()=>{
+    const l=item.dataset.line;
+    S.summaryVis[l]=!S.summaryVis[l];
+    document.getElementById('cb-'+l)?.classList.toggle('on',S.summaryVis[l]);
+    renderSummary();
+  });
+});
+
+// ── DISTRIBUTION CHART ─────────────────────────────────────────
+function renderDist(cid, emptyId, param){
+  if(emptyId){const e=document.getElementById(emptyId);if(e)e.style.display='none';}
+  const c=document.getElementById(cid);if(c)c.style.display='block';
+  const vals=S.spectra.filter(s=>s.referenceValues?.[param]!==undefined);
+  if(!vals.length)return;
+  const tv=vals.filter(s=>s.logicalSet==='Training').map(s=>s.referenceValues[param]);
+  const vv=vals.filter(s=>s.logicalSet==='Validation').map(s=>s.referenceValues[param]);
+  const all=[...tv,...vv];
+  const bins=16,mn=Math.min(...all),mx=Math.max(...all),st=Math.max((mx-mn)/bins,1e-10);
+  const tB=new Array(bins).fill(0),vB=new Array(bins).fill(0);
+  tv.forEach(v=>{const b=Math.min(Math.floor((v-mn)/st),bins-1);tB[b]++;});
+  vv.forEach(v=>{const b=Math.min(Math.floor((v-mn)/st),bins-1);vB[b]++;});
+  if(Charts[cid])Charts[cid].destroy();
+  const canvas=document.getElementById(cid);if(!canvas)return;
+  Charts[cid]=new Chart(canvas,{type:'bar',data:{
+    labels:Array.from({length:bins},(_,i)=>(mn+i*st).toFixed(3)),
+    datasets:[
+      {label:'Training',  data:tB,backgroundColor:'rgba(30,95,168,0.7)',borderRadius:1},
+      {label:'Validation',data:vB,backgroundColor:'rgba(46,125,82,0.7)',borderRadius:1}
+    ]
+  },options:{animation:false,responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,labels:{font:{size:9},color:'#4a4f5c',boxWidth:8}}},
+    scales:{
+      x:{ticks:{maxTicksLimit:8,color:'#8a909e',font:{size:9}},grid:{display:false}},
+      y:{title:{display:true,text:`Count — ${param} (${ELEM_UNITS[param]||'?'})`,color:'#8a909e',font:{size:9}},ticks:{color:'#8a909e',font:{size:9}},grid:{color:'rgba(0,0,0,0.04)'}}
+    }
+  }});
+}
+
+// ── Params detail ──────────────────────────────────────────────
+function renderParamsDet(){
+  const el=document.getElementById('params-det-list');
+  const avail=ELEMENTS.filter(param=>S.spectra.some(s=>s.referenceValues?.[param]!==undefined));
+
+  // Populate param selector dropdown
+  const pdetSel=document.getElementById('pdet-param');
+  if(pdetSel){
+    pdetSel.innerHTML='<option value="">— Element —</option>'+avail.map(el=>`<option value="${el}">${el}</option>`).join('');
+    if(S.selParam&&avail.includes(S.selParam))pdetSel.value=S.selParam;
+    pdetSel.onchange=function(){
+      S.selParam=this.value;
+      renderLogicalSets(this.value);
+      renderParamsDet();
+      if(this.value)renderDist('c-dist2',null,this.value);
+    };
+  }
+
+  el.innerHTML=avail.map(param=>{
+    const vals=S.spectra.filter(s=>s.referenceValues?.[param]!==undefined);
+    if(!vals.length)return'';
+    const tv=vals.filter(s=>s.logicalSet==='Training').map(s=>s.referenceValues[param]);
+    const vv=vals.filter(s=>s.logicalSet==='Validation').map(s=>s.referenceValues[param]);
+    const all=vals.map(s=>s.referenceValues[param]);
+    const mn=Math.min(...all),mx=Math.max(...all),mean=all.reduce((a,b)=>a+b,0)/all.length;
+    const std=Math.sqrt(all.reduce((s,v)=>s+(v-mean)**2,0)/Math.max(1,all.length-1));
+    const isSel=S.selParam===param;
+    return`<div class="p-row${isSel?' sel':''}" data-pp="${param}" style="cursor:pointer;">
+      <div class="p-cell nm">${param}</div>
+      <div class="p-cell unit">${ELEM_UNITS[param]||'—'}</div>
+      <div class="p-cell" style="text-align:right;">${all.length}</div>
+      <div class="p-cell" style="text-align:right;">${tv.length}</div>
+      <div class="p-cell" style="text-align:right;">${vv.length}</div>
+      <div class="p-cell" style="text-align:right;">${mn.toFixed(3)}</div>
+      <div class="p-cell" style="text-align:right;">${mx.toFixed(3)}</div>
+      <div class="p-cell" style="text-align:right;">${std.toFixed(3)}</div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('[data-pp]').forEach(r=>r.addEventListener('click',()=>{
+    S.selParam=r.dataset.pp;
+    document.querySelectorAll('[data-pp]').forEach(x=>x.style.background='');
+    r.style.background='#d6e4f7';
+    const pdetSel=document.getElementById('pdet-param');
+    if(pdetSel)pdetSel.value=r.dataset.pp;
+    renderLogicalSets(r.dataset.pp);
+    renderDist('c-dist2',null,r.dataset.pp);
+    buildSummaryChart('c-summary2',S.spectra,S.summaryVis);
+  }));
+  buildSummaryChart('c-summary2',S.spectra,S.summaryVis);
+  if(S.selParam)renderLogicalSets(S.selParam);
+}
+
+// ── Logical sets table ─────────────────────────────────────────
+function renderLogicalSets(param){
+  const el=document.getElementById('logical-sets-list');
+  if(!el||!param)return;
+  const vals=S.spectra.filter(s=>s.referenceValues?.[param]!==undefined);
+  const tv=vals.filter(s=>s.logicalSet==='Training').map(s=>s.referenceValues[param]);
+  const vv=vals.filter(s=>s.logicalSet==='Validation').map(s=>s.referenceValues[param]);
+  const allv=[...tv,...vv];
+  const fmt=v=>v!==undefined?Number(v).toFixed(2):'—';
+  const stats=arr=>arr.length?{
+    n:arr.length, u:new Set(arr).size,
+    mn:Math.min(...arr),mx:Math.max(...arr),
+    mean:arr.reduce((a,b)=>a+b,0)/arr.length,
+    std:Math.sqrt(arr.reduce((s,v)=>s+(v-(arr.reduce((a,b)=>a+b,0)/arr.length))**2,0)/Math.max(1,arr.length-1))
+  }:{n:0,u:0,mn:0,mx:0,mean:0,std:0};
+  const tStats=stats(tv),vStats=stats(vv),aStats=stats(allv);
+  const rowStyle='display:grid;grid-template-columns:1fr 80px 80px 80px 80px 80px 80px;border-bottom:1px solid var(--bg2);';
+  const cellStyle='padding:5px 8px;font-size:12px;color:var(--text2);border-right:1px solid var(--bg2);font-family:var(--mono);text-align:right;';
+  const nameStyle='padding:5px 10px;font-size:12px;color:var(--text);font-family:var(--font);border-right:1px solid var(--bg2);';
+  const row=(name,st,highlight)=>`<div style="${rowStyle}${highlight?'background:var(--blue-light);':''}">
+    <div style="${nameStyle}">${name}</div>
+    <div style="${cellStyle}">${st.n}</div><div style="${cellStyle}">${st.u}</div>
+    <div style="${cellStyle}">${fmt(st.mn)}</div><div style="${cellStyle}">${fmt(st.mx)}</div>
+    <div style="${cellStyle}">${fmt(st.mean)}</div><div style="${cellStyle}">${fmt(st.std)}</div>
+  </div>`;
+  el.innerHTML=
+    row(`Training (${param})`,tStats,false)+
+    row(`Validation (${param})`,vStats,false)+
+    row(`All (${param})`,aStats,true);
+}
+
+// ── Launch PLS ─────────────────────────────────────────────────
+window.launchPLS=function(){
+  const param=document.getElementById('pdet-param')?.value||S.selParam;
+  if(!param){toast('Select a parameter first','warn');return;}
+  sessionStorage.setItem('dcc_pls_param',param);
+  window.location.href='/samples/pls.html';
+};
+
+// ── Launch PCA ─────────────────────────────────────────────────
+window.launchPCA=function(){
+  window.location.href='/samples/pca.html';
+};
+
+// ── Raw data ───────────────────────────────────────────────────
+function renderRawHeader(){
+  const avail=ELEMENTS.filter(el=>S.spectra.some(s=>s.referenceValues?.[el]!==undefined));
+  document.getElementById('raw-thead').innerHTML=`<tr>
+    <th>Sample number</th><th>Time of analysis</th><th>Set</th>
+    ${avail.map(el=>`<th>${el} (${ELEM_UNITS[el]||'?'})</th>`).join('')}
+  </tr>`;
+  const pf=document.getElementById('raw-param');
+  pf.innerHTML='<option value="">All parameters</option>'+avail.map(el=>`<option value="${el}">${el}</option>`).join('');
+}
+function renderRawData(){
+  const tbody=document.getElementById('raw-tbody');
+  const filt=document.getElementById('raw-filter').value;
+  const paramF=document.getElementById('raw-param').value;
+  const avail=ELEMENTS.filter(el=>S.spectra.some(s=>s.referenceValues?.[el]!==undefined));
+  let sp=S.spectra;
+  if(filt==='Training')sp=sp.filter(s=>s.logicalSet==='Training');
+  if(filt==='Validation')sp=sp.filter(s=>s.logicalSet==='Validation');
+  if(filt==='Spectral outliers')sp=sp.filter(s=>s.isSpectralOutlier);
+  if(filt==='Reference outliers')sp=sp.filter(s=>s.isReferenceOutlier);
+  if(paramF)sp=sp.filter(s=>s.referenceValues?.[paramF]!==undefined);
+  document.getElementById('raw-count').textContent=`${sp.length} échantillons`;
+  tbody.innerHTML=sp.slice(0,500).map(s=>{
+    const rv=s.referenceValues||{};
+    const setTag=s.logicalSet==='Training'?'<span class="tag tag-blue">T</span>':
+                 s.logicalSet==='Validation'?'<span class="tag tag-green">V</span>':'<span class="tag tag-gray">—</span>';
+    return`<tr class="${s.isOutlier?'outlier':''}">
+      <td class="td-name">${sanitize(s.sampleNumber)}</td>
+      <td style="font-size:11px;">${s.timeOfAnalysis||'—'}</td>
+      <td>${setTag}</td>
+      ${avail.map(el=>`<td>${rv[el]!==undefined?Number(rv[el]).toFixed(3):'—'}</td>`).join('')}
+    </tr>`;
+  }).join('');
+}
+document.getElementById('raw-filter').addEventListener('change',renderRawData);
+document.getElementById('raw-param').addEventListener('change',renderRawData);
+
+// ── FULLSCREEN ─────────────────────────────────────────────────
+window.openFS = type => {
+  const overlay=document.getElementById('fs-overlay');
+  const fsleg=document.getElementById('fs-legend');
+  document.getElementById('fs-title').textContent=type.startsWith('summary')?`Summary — ${S.yUnit}`:`Distribution — ${S.selParam||''}`;
+  fsleg.style.display=type.startsWith('summary')?'block':'none';
+  overlay.classList.add('on');
+  ['mean','std','max','min'].forEach(l=>document.getElementById('fs-cb-'+l)?.classList.toggle('on',S.summaryVis[l]));
+  setTimeout(()=>{
+    if(type.startsWith('summary')) buildSummaryChart('c-fs',S.spectra,S.summaryVis);
+    else if(S.selParam) renderDist('c-fs',null,S.selParam);
+  },50);
+};
+document.getElementById('fs-close').addEventListener('click',()=>{
+  document.getElementById('fs-overlay').classList.remove('on');
+  if(Charts['c-fs']){Charts['c-fs'].destroy();delete Charts['c-fs'];}
+});
+document.querySelectorAll('[data-fsline]').forEach(item=>{
+  item.addEventListener('click',()=>{
+    const l=item.dataset.fsline;
+    S.summaryVis[l]=!S.summaryVis[l];
+    document.getElementById('fs-cb-'+l)?.classList.toggle('on',S.summaryVis[l]);
+    document.getElementById('cb-'+l)?.classList.toggle('on',S.summaryVis[l]);
+    buildSummaryChart('c-fs',S.spectra,S.summaryVis);
+    renderSummary();
+  });
+});
+
+// ── JCAMP-DX PARSER ───────────────────────────────────────────
+const SQZ={'@':0,A:1,B:2,C:3,D:4,E:5,F:6,G:7,H:8,I:9,a:-1,b:-2,c:-3,d:-4,e:-5,f:-6,g:-7,h:-8,i:-9};
+const DIF={'%':0,J:1,K:2,L:3,M:4,N:5,O:6,P:7,Q:8,R:9,j:-1,k:-2,l:-3,m:-4,n:-5,o:-6,p:-7,q:-8,r:-9};
+const DUP={S:1,T:2,U:3,V:4,W:5,X:6,Y:7,Z:8,s:9};
+function decodeLine(line){
+  const v=[];let i=0,n=line.length,first=true;
+  while(i<n){const c=line[i];if(c===' '||c==='\t'){i++;continue;}
+    if(first&&(c==='-'||c==='+'||(c>='0'&&c<='9'))){while(i<n&&line[i]!==' '&&!(line[i] in SQZ)&&!(line[i] in DIF)&&!(line[i] in DUP))i++;first=false;continue;}
+    first=false;
+    if(c in SQZ){let x=SQZ[c];i++;while(i<n&&line[i]>='0'&&line[i]<='9'){x=x>=0?x*10+parseInt(line[i]):x*10-parseInt(line[i]);i++;}v.push(x);continue;}
+    if(c in DIF){let x=DIF[c];i++;while(i<n&&line[i]>='0'&&line[i]<='9'){x=x>=0?x*10+parseInt(line[i]):x*10-parseInt(line[i]);i++;}v.push((v[v.length-1]||0)+x);continue;}
+    if(c in DUP){const cnt=DUP[c];i++;const last=v[v.length-1]||0;for(let k=1;k<cnt;k++)v.push(last);continue;}
+    if(c==='-'||c==='+'||c==='.'||(c>='0'&&c<='9')){let s='';while(i<n&&(line[i]==='-'||line[i]==='+'||line[i]==='.'||(line[i]>='0'&&line[i]<='9')))s+=line[i++];if(s)v.push(parseFloat(s));continue;}
+    i++;
+  }
+  return v;
+}
+function parseDX(text){
+  const blocks=text.split(/(?=##TITLE= Spectrum for Sample)/);
+  const out=[];
+  for(const b of blocks){
+    if(!b.includes('##TITLE= Spectrum for Sample'))continue;
+    const lines=b.split(/\r?\n/);
+    const m={},rv={};let inD=false,fx=178,dx=0.1,yf=1,np=0;const dl=[];
+    for(const l of lines){
+      if(l.startsWith('##')){const eq=l.indexOf('=');if(eq<0)continue;
+        const k=l.slice(2,eq).trim().toUpperCase(),vl=l.slice(eq+1).trim();m[k]=vl;
+        if(k==='FIRSTX')fx=parseFloat(vl);if(k==='DELTAX')dx=parseFloat(vl);
+        if(k==='YFACTOR')yf=parseFloat(vl);if(k==='NPOINTS')np=parseInt(vl);
+        if(k==='XYDATA'){inD=true;continue;}if(k==='END')inD=false;}
+      else if(l.startsWith('(')){const r=l.match(/\(Reference-(\w+),\s*([-\d.]+)/);if(r)rv[r[1]]=parseFloat(r[2]);}
+      else if(inD&&l.trim())dl.push(l.trim());
+    }
+    if(!m['TITLE'])continue;
+    const yr=[];for(const d of dl)yr.push(...decodeLine(d));
+    const wl=[],int=[];const pts=Math.min(yr.length,np||yr.length);
+    for(let i=0;i<pts;i++){wl.push(parseFloat((fx+i*dx).toFixed(2)));int.push(yr[i]*yf);}
+    if(!wl.length)continue;
+    const sn=m['TITLE'].replace('Spectrum for Sample','').trim();
+    const yunit=m['YUNITS']||'Emission';
+    out.push({sampleNumber:sn,wavelengths:wl,intensities:int,yUnit:yunit,
+      isOutlier:false,isSpectralOutlier:false,isReferenceOutlier:false,
+      logicalSet:'Training',
+      timeOfAnalysis:m['DATE']&&m['TIME']?`${m['DATE']} ${m['TIME']}`:'',
+      referenceValues:Object.keys(rv).length?rv:null});
+  }
+  return out;
+}
+
+// ── REF parser (CSV with ; separator and , decimal) ───────────
+function parseREF(text){
+  const lines=text.trim().split(/\r?\n/);
+  if(lines.length<2)return{refs:[],columns:[]};
+  // Detect separator
+  const sep=lines[0].includes(';')?';':',';
+  const headers=lines[0].split(sep).map(h=>h.trim().replace(/"/g,''));
+  const sampleCol=headers.findIndex(h=>h.toLowerCase().includes('sample')||h.toLowerCase().includes('id'));
+  const elemCols=headers.map((h,i)=>({h,i})).filter(({h})=>COL_TO_ELEM[h]);
+
+  const refs=[];
+  for(let i=1;i<lines.length;i++){
+    const row=lines[i].split(sep).map(c=>c.trim().replace(/"/g,''));
+    if(!row[sampleCol])continue;
+    const sn=row[sampleCol];
+    const vals={};
+    elemCols.forEach(({h,i:ci})=>{
+      const elem=COL_TO_ELEM[h];
+      // Handle comma decimal separator
+      const raw=row[ci]?.replace(',','.');
+      const v=parseFloat(raw);
+      if(!isNaN(v)) vals[elem]=v;
+    });
+    if(Object.keys(vals).length>0) refs.push({sampleNumber:sn,values:vals});
+  }
+  return {refs, columns:elemCols.map(e=>COL_TO_ELEM[e.h])};
+}
+
+function matchRef(spectra,refs){
+  const map=new Map();
+  refs.forEach(r=>map.set(r.sampleNumber.replace(/,/g,'.').trim(),r));
+  return spectra.map(s=>{
+    const ref=map.get(s.sampleNumber.replace(/,/g,'.').trim());
+    if(ref) return{...s,referenceValues:{...(s.referenceValues||{}),...ref.values}};
+    return s;
+  });
+}
+
+// ── Split rules ────────────────────────────────────────────────
+function applySplit(spectra,rule,pct){
+  const n=spectra.length,nt=Math.round(pct/100*n);
+  if(rule==='training')   return spectra.map(s=>({...s,logicalSet:'Training'}));
+  if(rule==='validation') return spectra.map(s=>({...s,logicalSet:'Validation'}));
+  if(rule==='none')       return spectra.map(s=>({...s,logicalSet:'All'}));
+  if(rule==='distribution'){
+    const withRef=spectra.filter(s=>s.referenceValues&&Object.keys(s.referenceValues).length>0);
+    const noRef=spectra.filter(s=>!s.referenceValues||!Object.keys(s.referenceValues).length);
+    const fk=Object.keys(withRef[0]?.referenceValues||{})[0];
+    if(fk)withRef.sort((a,b)=>(a.referenceValues[fk]||0)-(b.referenceValues[fk]||0));
+    return [...withRef,...noRef].map((s,i)=>({...s,logicalSet:i%5===0?'Validation':'Training'}));
+  }
+  if(rule==='random'){
+    const idx=Array.from({length:n},(_,i)=>i);
+    for(let i=n-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+    const ts=new Set(idx.slice(0,nt));
+    return spectra.map((s,i)=>({...s,logicalSet:ts.has(i)?'Training':'Validation'}));
+  }
+  return spectra.map((s,i)=>({...s,logicalSet:i<nt?'Training':'Validation'}));
+}
+
+// ── IMPORT FILE ────────────────────────────────────────────────
+document.getElementById('btn-file').addEventListener('click',()=>{
+  switchImportTab('spec');
+  showModal('m-import');
+});
+// Fonction de bascule d'onglets
+window.switchImportTab = function(tab) {
+  document.getElementById('pane-spec').style.display = tab==='spec'?'':'none';
+  document.getElementById('pane-ref').style.display  = tab==='ref'?'':'none';
+  document.getElementById('tab-spec').style.color = tab==='spec'?'var(--blue)':'var(--text3)';
+  document.getElementById('tab-ref').style.color  = tab==='ref'?'var(--blue)':'var(--text3)';
+  document.getElementById('tab-spec').style.borderBottomColor = tab==='spec'?'var(--blue)':'transparent';
+  document.getElementById('tab-ref').style.borderBottomColor  = tab==='ref'?'var(--blue)':'transparent';
+};
+document.getElementById('imp-split').addEventListener('change',function(){
+  const ok=!['training','validation','none'].includes(this.value);
+  document.getElementById('train-wrap').style.opacity=ok?'1':'0.4';
+});
+document.getElementById('imp-train').addEventListener('input',function(){
+  document.getElementById('imp-val').value=100-parseInt(this.value||80);
+});
+
+document.getElementById('imp-file').addEventListener('change',async function(){
+  const f=this.files[0];if(!f)return;
+  document.getElementById('imp-fname').value=f.name;
+  document.getElementById('imp-info').textContent='Lecture...';
+  S.pendingDX=parseDX(await f.text());
+  const info=S.pendingDX.length
+    ?`${S.pendingDX.length} spectres · ${S.pendingDX[0]?.wavelengths?.length||0} pts · ${S.pendingDX[0]?.wavelengths?.[0]||0}–${S.pendingDX[0]?.wavelengths?.at(-1)||0} nm · Y: ${S.pendingDX[0]?.yUnit||'Emission'}`
+    :'Aucun spectre trouvé';
+  document.getElementById('imp-info').textContent=info;
+  // Compteur spectres sans référence
+  const noref = S.pendingDX.filter(s=>!s.referenceValues||!Object.keys(s.referenceValues).length).length;
+  const norefEl = document.getElementById('noref-count');
+  if(norefEl) norefEl.textContent = noref>0 ? '('+noref+' sans référence)' : '';
+  if(S.pendingDX[0]?.yUnit) {
+    S.yUnit=S.pendingDX[0].yUnit==='Emission'?'Emission (EU)':'Absorbance / log(1/R)';
+    document.getElementById('yunit-label').textContent=S.yUnit;
+  }
+});
+
+document.getElementById('imp-ok').addEventListener('click',async()=>{
+  if(!S.pendingDX){toast('Sélectionnez un fichier','error');return;}
+  if(!S.project){toast('Aucun projet sélectionné','warn');return;}
+  const rule=document.getElementById('imp-split').value;
+  const pct=parseInt(document.getElementById('imp-train').value||80);
+  let sp=applySplit([...S.pendingDX],rule,pct);
+  // Option: exclure spectres sans référence
+  if(document.getElementById('imp-exclude-noref')?.checked){
+    const before=sp.length;
+    sp=sp.filter(s=>s.referenceValues&&Object.keys(s.referenceValues).length>0);
+    if(sp.length<before) toast(before-sp.length+' spectres sans référence exclus','info');
+  }
+  S.spectra=sp;
+  S.selParams=ELEMENTS.filter(el=>sp.some(s=>s.referenceValues?.[el]!==undefined));
+  const nT=sp.filter(s=>s.logicalSet==='Training').length;
+  const nV=sp.filter(s=>s.logicalSet==='Validation').length;
+  const nRef=sp.filter(s=>s.referenceValues&&Object.keys(s.referenceValues).length).length;
+  const labels={'time':'Split time based','training':'Training only','validation':'Validation only','random':'Split random','distribution':'Split and retain parameter distribution','none':'None'};
+  const ssId=S.ssId||Date.now().toString();
+  S.ssId=ssId;
+  const ss={id:ssId,name:document.getElementById('imp-fname').value,samples:sp.length,unique:sp.length,
+    outliers:'0/0',range:`${sp[0]?.wavelengths?.[0]||0}–${sp[0]?.wavelengths?.at(-1)||0} nm`,
+    splitRule:labels[rule]||rule,nT,nV,nRef};
+  S.sampleSets=[ss];S.selSS=ss;
+  hideModal('m-import');
+  enableToolbar();
+  renderSSList();renderSelParams();renderSummary();renderRawHeader();renderRawData();
+  S.pendingDX=null;
+  openParamsModal();
+  // Save to Firestore
+  setSaving('Sauvegarde...');showLoadBar(true);
+  try{
+    await setDoc(doc(db,'projects',S.project.id,'sampleSets',ssId),{
+      name:ss.name,samples:ss.samples,unique:ss.unique,outliers:'0/0',
+      range:ss.range,splitRule:ss.splitRule,nT,nV,nRef,createdAt:serverTimestamp()
+    });
+    const BATCH=20;
+    for(let i=0;i<sp.length;i+=BATCH){
+      await Promise.all(sp.slice(i,i+BATCH).map(s=>
+        setDoc(doc(db,'projects',S.project.id,'sampleSets',ssId,'spectra',
+          s.sampleNumber.replace(/[./\s#[\]*?]/g,'_')),{
+          sampleNumber:s.sampleNumber,wavelengths:s.wavelengths,intensities:s.intensities,
+          logicalSet:s.logicalSet,isOutlier:false,isSpectralOutlier:false,isReferenceOutlier:false,
+          referenceValues:s.referenceValues||null,timeOfAnalysis:s.timeOfAnalysis||''
+        })
+      ));
+      setLoadProgress(Math.round((i+BATCH)/sp.length*100),`Sauvegarde ${Math.min(i+BATCH,sp.length)} / ${sp.length}`);
+    }
+    await updateDoc(doc(db,'projects',S.project.id),{numberOfSamples:sp.length,numberOfParameters:S.selParams.length,status:'In Progress',lastModifiedAt:serverTimestamp(),lastModifiedBy:S.user.uid});
+    setSaving('');showLoadBar(false);
+    toast(`${sp.length} spectres sauvegardés`,'success');
+  }catch(e){setSaving('');showLoadBar(false);toast('Erreur sauvegarde: '+e.message,'error');}
+});
+document.getElementById('imp-cancel').addEventListener('click',()=>hideModal('m-import'));
+
+// ── IMPORT REFERENCE VALUES ────────────────────────────────────
+// btn-ref fusionné dans btn-file
+
+document.getElementById('ref-file').addEventListener('change',async function(){
+  const f=this.files[0];if(!f)return;
+  document.getElementById('ref-fname').value=f.name;
+  let text='';
+  if(f.name.endsWith('.xlsx')||f.name.endsWith('.xls')){
+    const buf=await f.arrayBuffer();
+    const wb=XLSX.read(new Uint8Array(buf),{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+    // Convert to CSV
+    text=rows.map(r=>r.join(';')).join('\n');
+  }else{
+    text=await f.text();
+  }
+  const {refs,columns}=parseREF(text);
+  S.pendingRef=refs;S.refColumns=columns;
+  document.getElementById('ref-info').textContent=`${refs.length} références · Éléments : ${columns.join(', ')}`;
+  // Show match preview if spectra loaded
+  if(S.spectra.length&&document.getElementById('ref-match').checked){
+    showMatchPreview(refs);
+  }
+});
+
+document.getElementById('ref-match').addEventListener('change',function(){
+  if(this.checked&&S.pendingRef&&S.spectra.length) showMatchPreview(S.pendingRef);
+  else document.getElementById('ref-match-preview').style.display='none';
+});
+
+function showMatchPreview(refs){
+  const spectraIds=new Set(S.spectra.map(s=>s.sampleNumber.replace(/,/g,'.').trim()));
+  const refMap=new Map(refs.map(r=>[r.sampleNumber.replace(/,/g,'.').trim(),r]));
+  let matched=0,missingInDx=[],missingInRef=[];
+  refs.forEach(r=>{const id=r.sampleNumber.replace(/,/g,'.').trim();if(spectraIds.has(id))matched++;else missingInDx.push(id);});
+  spectraIds.forEach(id=>{if(!refMap.has(id))missingInRef.push(id);});
+  const preview=document.getElementById('ref-match-preview');
+  const stats=document.getElementById('ref-match-stats');
+  const list=document.getElementById('ref-match-list');
+  preview.style.display='block';
+  stats.innerHTML=`<span class="match-found">&#10003; ${matched} correspondances trouvées</span> &nbsp;&middot;&nbsp; <span class="match-missing">${missingInDx.length} REF sans spectre &nbsp;&middot;&nbsp; ${missingInRef.length} spectres sans REF</span>`;
+  list.innerHTML=[
+    ...missingInDx.slice(0,10).map(id=>`<div class="match-row"><span class="match-missing">&#9679; REF sans spectre : ${id}</span></div>`),
+    ...missingInRef.slice(0,10).map(id=>`<div class="match-row"><span style="color:var(--text3);">&#9675; Spectre sans REF : ${id}</span></div>`),
+    (missingInDx.length>10?`<div style="color:var(--text3);font-size:11px;">... et ${missingInDx.length-10} autres</div>`:'')
+  ].join('');
+}
+
+document.getElementById('ref-ok').addEventListener('click',async()=>{
+  if(!S.pendingRef){toast('Sélectionnez un fichier','error');return;}
+  const doMatch=document.getElementById('ref-match').checked;
+  if(doMatch&&S.spectra.length){
+    S.spectra=matchRef(S.spectra,S.pendingRef);
+    S.selParams=ELEMENTS.filter(el=>S.spectra.some(s=>s.referenceValues?.[el]!==undefined));
+  }
+  hideModal('m-import');
+  renderSelParams();renderRawHeader();renderRawData();
+  // Save ref values to Firestore
+  if(S.project&&S.ssId&&doMatch){
+    setSaving('Sauvegarde des REF...');
+    try{
+      const BATCH=20;const sp=S.spectra.filter(s=>s.referenceValues);
+      for(let i=0;i<sp.length;i+=BATCH){
+        await Promise.all(sp.slice(i,i+BATCH).map(s=>
+          updateDoc(doc(db,'projects',S.project.id,'sampleSets',S.ssId,'spectra',
+            s.sampleNumber.replace(/[./\s#[\]*?]/g,'_')),
+            {referenceValues:s.referenceValues})
+        ));
+      }
+      setSaving('');toast(`Références sauvegardées (${sp.length} échantillons)`,'success');
+    }catch(e){setSaving('');toast('Erreur: '+e.message,'error');}
+  }else{
+    toast(`${S.pendingRef.length} références importées`,'success');
+  }
+  S.pendingRef=null;
+});
+document.getElementById('ref-cancel').addEventListener('click',()=>hideModal('m-import'));
+
+// ── MANAGE SPECTRA ─────────────────────────────────────────────
+document.getElementById('btn-manage').addEventListener('click',()=>{
+  renderManageList();showModal('m-manage');
+});
+
+function renderManageList(){
+  const search=document.getElementById('manage-search').value.toLowerCase();
+  const filter=document.getElementById('manage-filter').value;
+  let sp=S.spectra;
+  if(filter==='training')   sp=sp.filter(s=>s.logicalSet==='Training');
+  if(filter==='validation') sp=sp.filter(s=>s.logicalSet==='Validation');
+  if(filter==='outlier')    sp=sp.filter(s=>s.isSpectralOutlier);
+  if(filter==='ref')        sp=sp.filter(s=>s.referenceValues&&Object.keys(s.referenceValues).length);
+  if(filter==='noref')      sp=sp.filter(s=>!s.referenceValues||!Object.keys(s.referenceValues).length);
+  if(search)sp=sp.filter(s=>s.sampleNumber.toLowerCase().includes(search));
+  document.getElementById('manage-count').textContent=`${sp.length} / ${S.spectra.length} spectres`;
+  const list=document.getElementById('manage-list');
+  list.innerHTML=sp.slice(0,300).map(s=>`
+    <div class="sp-item" data-sn="${s.sampleNumber}">
+      <div>
+        <div class="sp-item-id">${s.sampleNumber}</div>
+        <div class="sp-item-set">${s.logicalSet}${s.isSpectralOutlier?' · Outlier':''} · ${s.timeOfAnalysis||'—'}</div>
+      </div>
+      <span class="tag ${s.referenceValues?'tag-green':'tag-gray'}">${s.referenceValues?'REF':'—'}</span>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <input type="checkbox" class="manage-cb" value="${s.sampleNumber}" style="accent-color:var(--blue);" ${S.manageSelected.has(s.sampleNumber)?'checked':''}/>
+      </div>
+    </div>
+  `).join('');
+  list.querySelectorAll('.manage-cb').forEach(cb=>{
+    cb.addEventListener('change',()=>{
+      if(cb.checked)S.manageSelected.add(cb.value);
+      else S.manageSelected.delete(cb.value);
+    });
+  });
+}
+
+document.getElementById('manage-search').addEventListener('input',renderManageList);
+document.getElementById('manage-filter').addEventListener('change',renderManageList);
+
+document.getElementById('btn-delete-selected').addEventListener('click',async()=>{
+  if(!S.manageSelected.size){toast('Sélectionnez des spectres','warn');return;}
+  const toDelete=[...S.manageSelected];
+  S.spectra=S.spectra.filter(s=>!toDelete.includes(s.sampleNumber));
+  S.manageSelected.clear();
+  if(S.selSS) S.selSS.samples=S.spectra.length;
+  renderManageList();renderSSList();renderSelParams();renderSummary();renderRawData();
+  toast(`${toDelete.length} spectre(s) supprimé(s)`,'warn');
+  // Delete from Firestore
+  if(S.project&&S.ssId){
+    try{
+      for(const sn of toDelete){
+        await deleteDoc(doc(db,'projects',S.project.id,'sampleSets',S.ssId,'spectra',sn.replace(/[./\s#[\]*?]/g,'_')));
+      }
+    }catch(e){toast('Erreur suppression Firestore: '+e.message,'error');}
+  }
+});
+
+// Add another .dx file to the same sample set
+document.getElementById('btn-add-dx').addEventListener('click',()=>document.getElementById('add-dx-file').click());
+document.getElementById('add-dx-file').addEventListener('change',async function(){
+  const f=this.files[0];if(!f)return;
+  const newSpectra=parseDX(await f.text());
+  if(!newSpectra.length){toast('Aucun spectre trouvé','error');return;}
+  // Apply same split as existing
+  const rule=S.selSS?.splitRule?.toLowerCase().includes('random')?'random':
+             S.selSS?.splitRule?.toLowerCase().includes('time')?'time':'time';
+  const pct=S.selSS?.nT?Math.round(S.selSS.nT/(S.selSS.nT+S.selSS.nV||1)*100):80;
+  const split=applySplit(newSpectra,rule,pct);
+  // Merge: avoid duplicates
+  const existing=new Set(S.spectra.map(s=>s.sampleNumber));
+  const toAdd=split.filter(s=>!existing.has(s.sampleNumber));
+  S.spectra=[...S.spectra,...toAdd];
+  if(S.selSS)S.selSS.samples=S.spectra.length;
+  renderManageList();renderSSList();renderSelParams();renderSummary();renderRawData();
+  toast(`${toAdd.length} nouveaux spectres ajoutés (${split.length-toAdd.length} doublons ignorés)`,'success');
+  // Save new spectra to Firestore
+  if(S.project&&S.ssId){
+    setSaving('Sauvegarde...');
+    try{
+      const BATCH=20;
+      for(let i=0;i<toAdd.length;i+=BATCH){
+        await Promise.all(toAdd.slice(i,i+BATCH).map(s=>
+          setDoc(doc(db,'projects',S.project.id,'sampleSets',S.ssId,'spectra',
+            s.sampleNumber.replace(/[./\s#[\]*?]/g,'_')),{
+            sampleNumber:s.sampleNumber,wavelengths:s.wavelengths,intensities:s.intensities,
+            logicalSet:s.logicalSet,isOutlier:false,isSpectralOutlier:false,isReferenceOutlier:false,
+            referenceValues:s.referenceValues||null,timeOfAnalysis:s.timeOfAnalysis||''
+          })
+        ));
+      }
+      await updateDoc(doc(db,'projects',S.project.id,'sampleSets',S.ssId),{samples:S.spectra.length});
+      setSaving('');toast('Sauvegardé','success');
+    }catch(e){setSaving('');toast('Erreur: '+e.message,'error');}
+  }
+  this.value='';
+});
+
+document.getElementById('manage-save').addEventListener('click',()=>{hideModal('m-manage');toast('Modifications sauvegardées','success');});
+document.getElementById('manage-close').addEventListener('click',()=>hideModal('m-manage'));
+
+// ── Select params ──────────────────────────────────────────────
+function openParamsModal(){
+  document.getElementById('sp-list').innerHTML=ELEMENTS.map(el=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-bottom:1px solid var(--bg2);">
+      <span style="font-size:12px;color:var(--text);">${el} <span style="font-size:10px;color:var(--text3);">(${ELEM_UNITS[el]})</span></span>
+      <input type="checkbox" class="sp-cb" value="${el}" ${S.selParams.includes(el)?'checked':''} style="accent-color:var(--blue);width:14px;height:14px;"/>
+    </div>`).join('');
+  document.getElementById('sp-all').checked=S.selParams.length===ELEMENTS.length;
+  showModal('m-params');
+}
+document.getElementById('btn-sel-params').addEventListener('click',openParamsModal);
+document.getElementById('sp-all').addEventListener('change',function(){document.querySelectorAll('.sp-cb').forEach(c=>c.checked=this.checked);});
+document.getElementById('sp-ok').addEventListener('click',()=>{
+  S.selParams=[...document.querySelectorAll('.sp-cb:checked')].map(c=>c.value);
+  hideModal('m-params');renderSelParams();
+  if(S.selParams.length){S.selParam=S.selParams[0];renderDist('c-dist','dist-empty',S.selParam);}
+});
+document.getElementById('sp-cancel').addEventListener('click',()=>hideModal('m-params'));
+
+// ── Autoclean ──────────────────────────────────────────────────
+document.getElementById('btn-autoclean').addEventListener('click',()=>{
+  if(!S.spectra.length){toast('Aucun spectre chargé','warn');return;}
+  const means=S.spectra.map(s=>s.intensities.reduce((a,b)=>a+b,0)/s.intensities.length);
+  const gm=means.reduce((a,b)=>a+b,0)/means.length;
+  const gs=Math.sqrt(means.reduce((s,v)=>s+(v-gm)**2,0)/means.length);
+  let n=0;
+  S.spectra=S.spectra.map((s,i)=>{const out=Math.abs(means[i]-gm)>5*gs;if(out)n++;return{...s,isSpectralOutlier:out,isOutlier:out};});
+  if(S.selSS)S.selSS.outliers=`${n}/${S.spectra.length}`;
+  renderSSList();renderSummary();
+  toast(`Autoclean : ${n} outlier(s) / ${S.spectra.length}`,n>0?'warn':'success');
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,2112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DCC — Models</title>
+<link rel="stylesheet" href="/shared/style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+.proj-banner{background:var(--blue);color:#fff;font-size:12px;padding:5px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.proj-banner a{color:rgba(255,255,255,0.75);text-decoration:none;font-size:11px;}
+.models-wrap{flex:1;overflow:auto;padding:14px;background:var(--bg);}
+.models-table{width:100%;background:var(--white);border:1px solid var(--border);border-radius:var(--r2);border-collapse:collapse;font-size:12px;}
+.models-table th{background:var(--bg2);color:var(--text2);font-weight:500;text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;}
+.models-table td{padding:8px 12px;border-bottom:1px solid var(--bg2);color:var(--text2);font-family:var(--mono);}
+.models-table tr{cursor:pointer;transition:background 0.1s;}
+.models-table tr:hover td{background:var(--blue-light);}
+.models-table tr.sel td{background:#d6e4f7;}
+.nm{font-family:var(--font)!important;color:var(--text)!important;font-weight:500;}
+.status-new{color:var(--text3);}
+.status-cal{color:var(--green);font-weight:500;}
+.status-pub{color:var(--blue);font-weight:500;}
+.status-err{color:var(--red);}
+.status-calc{color:var(--orange);}
+
+.act-icons{display:flex;gap:4px;justify-content:flex-end;}
+.act-ic{border:none;background:none;cursor:pointer;color:var(--text3);padding:2px 4px;border-radius:2px;font-size:13px;}
+.act-ic:hover{background:var(--bg2);color:var(--blue);}
+
+.charts-6{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:14px;background:var(--bg);flex:1;overflow:auto;grid-auto-rows:minmax(260px, 1fr);}
+.chart-panel{background:var(--white);border:1px solid var(--border);border-radius:var(--r2);display:flex;flex-direction:column;min-height:280px;position:relative;}
+.chart-hd{padding:5px 12px;border-bottom:1px solid var(--border);background:var(--bg2);font-size:11px;font-weight:500;color:var(--blue);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.chart-body{flex:1;padding:6px;position:relative;min-height:230px;}
+.chart-body canvas{width:100%!important;height:100%!important;}
+.chart-expand{border:none;background:none;cursor:pointer;color:var(--blue);font-size:14px;padding:0 4px;line-height:1;}
+.chart-expand:hover{transform:scale(1.2);}
+.chart-controls{display:flex;gap:4px;align-items:center;}
+.chart-controls select{font-size:10px;padding:1px 4px;border:1px solid var(--border);border-radius:2px;}
+
+/* Foss-style model settings page */
+.mm-page{flex:1;display:flex;flex-direction:column;background:var(--white);overflow:hidden;}
+.mm-page-hd{padding:12px 20px;font-size:15px;font-weight:500;color:var(--text);border-bottom:1px solid var(--border);flex-shrink:0;}
+.mm-top-bar{padding:10px 20px;display:flex;gap:18px;align-items:center;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0;}
+.mm-top-bar label{font-size:12px;color:var(--text2);}
+.mm-top-bar select{padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:12px;min-width:130px;}
+.mm-body2{display:grid;grid-template-columns:minmax(420px,1fr) minmax(420px,1fr);flex:1;overflow:hidden;}
+.mm-left-col,.mm-right-col{overflow:auto;padding:16px 22px;}
+.mm-left-col{border-right:1px solid var(--border);background:var(--bg);}
+.mm-right-col{background:var(--white);}
+.summary-sec{margin-bottom:18px;}
+.summary-sec.on{background:#d6e4f7;padding:10px 14px;margin:-2px -14px 16px;border-radius:3px;}
+.summary-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.summary-row{display:grid;grid-template-columns:180px 1fr;font-size:12px;color:var(--text2);padding:3px 0;font-family:var(--mono);}
+.summary-row .lbl{color:var(--text2);font-family:var(--font);}
+.summary-row .val{color:var(--text);}
+
+.detail-sec{margin-bottom:22px;}
+.detail-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px;padding-bottom:4px;border-bottom:1px solid var(--bg2);}
+.detail-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;}
+.detail-row label{flex:0 0 160px;color:var(--text2);font-size:11px;}
+.detail-row input:not([type=checkbox]):not([type=radio]),
+.detail-row select{flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:12px;outline:none;}
+.detail-row input:focus,.detail-row select:focus{border-color:var(--blue);}
+.detail-radio{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);padding:2px 0;cursor:pointer;}
+.mm-foot{padding:12px 20px;border-top:1px solid var(--border);background:var(--white);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;}
+
+.range-inputs{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:6px;align-items:center;}
+.range-inputs span{color:var(--text3);font-size:11px;}
+.range-inputs input{padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:12px;text-align:center;}
+
+#vsel-list{max-height:200px;overflow:auto;font-size:11px;border:1px solid var(--border);border-radius:3px;padding:8px;background:var(--white);}
+.vsel-item{padding:3px 0;display:flex;align-items:center;gap:6px;}
+.vsel-item label{flex:1;cursor:pointer;font-family:var(--mono);color:var(--text2);}
+
+/* Pipeline preview */
+.pipeline-preview{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:6px;font-size:11px;font-family:var(--mono);color:var(--text2);min-height:28px;margin-bottom:8px;}
+
+/* Fullscreen chart overlay */
+.fs-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.98);z-index:500;display:none;flex-direction:column;}
+.fs-overlay.on{display:flex;}
+.fs-hd{padding:10px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--bg2);flex-shrink:0;}
+.fs-hd-title{font-size:14px;font-weight:500;color:var(--text);}
+.fs-body{flex:1;display:grid;grid-template-columns:1fr 280px;overflow:hidden;}
+.fs-chart{position:relative;padding:14px;overflow:hidden;}
+.fs-chart canvas{width:100%!important;height:100%!important;}
+.fs-side{border-left:1px solid var(--border);background:var(--bg);padding:14px;overflow:auto;font-size:12px;}
+.fs-side h4{font-size:12px;font-weight:500;margin-bottom:8px;color:var(--text);}
+.fs-outlier-list{background:var(--white);border:1px solid var(--border);border-radius:3px;max-height:240px;overflow:auto;}
+.fs-outlier-list .oi{padding:5px 8px;border-bottom:1px solid var(--bg2);font-size:11px;font-family:var(--mono);display:flex;justify-content:space-between;align-items:center;}
+.fs-outlier-list .oi:hover{background:var(--blue-light);}
+.fs-outlier-list .oi button{border:none;background:none;cursor:pointer;color:var(--red);font-size:12px;}
+
+#fs-canvas-wrap{position:relative;width:100%;height:100%;}
+#fs-sel-cv{position:absolute;inset:0;cursor:crosshair;z-index:4;}
+
+/* Context menu */
+#ctx-fs{position:fixed;z-index:600;background:#fff;border:1px solid var(--border);border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:4px;display:none;min-width:190px;}
+#ctx-fs.on{display:block;}
+#ctx-fs .ci{padding:6px 12px;font-size:12px;cursor:pointer;color:var(--text2);border-radius:2px;}
+#ctx-fs .ci:hover{background:var(--blue);color:#fff;}
+#ctx-fs .sep{height:1px;background:var(--border);margin:4px 0;}
+
+.fs-toolbar{display:flex;gap:6px;align-items:center;}
+.fs-tb-btn{padding:3px 8px;border:1px solid var(--border);border-radius:3px;background:#fff;cursor:pointer;font-size:11px;}
+.fs-tb-btn:hover{background:var(--blue-light);}
+.fs-tb-btn.prim{background:var(--blue);color:#fff;border-color:var(--blue);}
+.fs-tb-btn.warn{background:var(--orange);color:#fff;border-color:var(--orange);}
+</style>
+</head>
+<body>
+<div id="topbar-mount"></div>
+<div class="page-body">
+  <div class="proj-banner">
+    <a href="/projects/">&#8592; Projects</a>
+    <span id="proj-name">No project</span>
+    <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,0.75);" id="saving-ind"></span>
+  </div>
+  <div class="sub-bar">
+    <a class="sub-tab on" data-mt="overview">Model overview</a>
+    <a class="sub-tab" data-mt="details">Model details</a>
+    <a class="sub-tab" data-mt="predict">Predict</a>
+  </div>
+  <div class="toolbar" id="tb-overview">
+    <button class="btn primary" id="btn-new">New model</button>
+    <button class="btn" id="btn-recommended">Recommended</button>
+    <div style="border-left:1px solid var(--border);height:20px;margin:0 6px;"></div>
+    <button class="btn" id="btn-duplicate-model" disabled>Duplicate</button>
+    <button class="btn" id="btn-delete-model" disabled>Delete</button>
+    <button class="btn" id="btn-view-details" disabled>View details</button>
+    <div style="margin-left:auto;font-size:11px;color:var(--text3);" id="models-count">0 models</div>
+  </div>
+
+  <!-- MODEL OVERVIEW -->
+  <div class="models-wrap" id="tab-overview">
+    <div id="overview-loading" style="text-align:center;color:var(--text3);padding:20px;font-size:12px;display:none;">
+      <div style="margin-bottom:6px;" id="overview-msg">Loading spectra...</div>
+      <div style="width:280px;height:3px;background:var(--bg2);margin:0 auto;border-radius:2px;overflow:hidden;">
+        <div id="overview-bar" style="height:100%;background:var(--blue);width:0%;transition:width 0.2s;"></div>
+      </div>
+    </div>
+    <table class="models-table" id="models-tbl">
+      <thead>
+        <tr>
+          <th>Model name</th><th>Parameter</th><th>Method</th><th>Status</th>
+          <th style="text-align:right;">RMSEP(cross)</th>
+          <th style="text-align:right;">RMSEP(cal)</th>
+          <th style="text-align:right;">RMSEP(val)</th>
+          <th style="text-align:right;">R²</th>
+          <th style="text-align:right;">Factors</th>
+          <th>Created</th>
+          <th style="width:140px;text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="models-tbody">
+        <tr><td colspan="11" style="text-align:center;color:var(--text3);padding:30px;font-family:var(--font);">No model yet — click "New model" to create one</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MODEL DETAILS -->
+  <div class="models-wrap" id="tab-details" style="display:none;padding:0;">
+    <div id="details-empty" style="color:var(--text3);font-size:13px;padding:30px;text-align:center;">Select a model from Model overview then click "View details"</div>
+    <div id="details-content" style="display:none;flex-direction:column;height:100%;">
+      <div style="background:var(--white);border-bottom:1px solid var(--border);padding:12px 18px;">
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:18px;font-size:12px;">
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;margin-bottom:3px;">Model</div><div style="font-weight:500;" id="dt-name">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;margin-bottom:3px;">Method</div><div id="dt-method">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;margin-bottom:3px;">Parameter</div><div id="dt-param">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;margin-bottom:3px;">Factors</div><div style="font-family:var(--mono);" id="dt-fact">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;margin-bottom:3px;">RMSEP (cal)</div><div style="font-family:var(--mono);" id="dt-rcal">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;margin-bottom:3px;">RMSEP (cross)</div><div style="font-family:var(--mono);" id="dt-rcross">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;margin-bottom:3px;">R²</div><div style="font-family:var(--mono);" id="dt-r2">—</div></div>
+        </div>
+      </div>
+      <div class="charts-6">
+        <div class="chart-panel">
+          <div class="chart-hd">
+            <span>Scores</span>
+            <div class="chart-controls">
+              <select id="sc-x"><option value="1" selected>#1</option><option value="2">#2</option><option value="3">#3</option></select>
+              <span style="font-size:10px;color:var(--text3);">vs</span>
+              <select id="sc-y"><option value="1">#1</option><option value="2" selected>#2</option><option value="3">#3</option></select>
+              <button class="chart-expand" onclick="openFullscreen('scores')" title="Expand">↗</button>
+            </div>
+          </div>
+          <div class="chart-body"><canvas id="c-scores"></canvas></div>
+        </div>
+        <div class="chart-panel">
+          <div class="chart-hd"><span>Residuals (Actual − Predicted)</span></div>
+          <div class="chart-body"><canvas id="c-residuals"></canvas></div>
+        </div>
+        <div class="chart-panel">
+          <div class="chart-hd"><span>Loadings on #1</span></div>
+          <div class="chart-body"><canvas id="c-loadings"></canvas></div>
+        </div>
+        <div class="chart-panel">
+          <div class="chart-hd"><span>PLS Factors (RMSEP vs Factors)</span></div>
+          <div class="chart-body"><canvas id="c-plsfactors"></canvas></div>
+        </div>
+        <div class="chart-panel">
+          <div class="chart-hd">
+            <span>Measured vs Predicted (Fitted)</span>
+            <div class="chart-controls">
+              <span style="font-size:10px;color:var(--text3);">Factor:</span>
+              <select id="mvp-factor" title="Number of factors used in prediction"></select>
+              <button class="chart-expand" onclick="openFullscreen('mvp')" title="Expand">↗</button>
+            </div>
+          </div>
+          <div class="chart-body"><canvas id="c-mvp"></canvas></div>
+        </div>
+        <div class="chart-panel">
+          <div class="chart-hd">
+            <span>Global H (Mahalanobis)</span>
+            <button class="chart-expand" onclick="openFullscreen('globalh')" title="Expand">↗</button>
+          </div>
+          <div class="chart-body"><canvas id="c-globalh"></canvas></div>
+        </div>
+        <div class="chart-panel" style="grid-column:1/-1;">
+          <div class="chart-hd"><span>Repeatability (s) vs Factors</span></div>
+          <div class="chart-body"><canvas id="c-repeatability"></canvas></div>
+        </div>
+      </div>
+      <div style="padding:10px 18px;border-top:1px solid var(--border);background:var(--white);display:flex;gap:8px;flex-shrink:0;">
+        <button class="btn" id="btn-recalculate-dt">Recalculate model</button>
+        <button class="btn" id="btn-change-settings">Change settings</button>
+        <button class="btn" id="btn-close-details" style="margin-left:auto;">Back to overview</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREDICT -->
+  <div class="models-wrap" id="tab-predict" style="display:none;">
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:14px;">
+      <div class="detail-title">Predict new samples</div>
+      <div class="detail-row"><label>Model</label><select id="pred-model" style="max-width:380px;"></select></div>
+      <div class="detail-row"><label>Spectral file</label><input type="file" id="pred-file" accept=".dx,.cal,.txt"/></div>
+      <div style="margin-top:14px;"><button class="btn primary" id="btn-predict">Run prediction</button></div>
+      <div id="pred-results" style="margin-top:16px;display:none;">
+        <div class="detail-title">Predictions</div>
+        <table class="models-table" id="pred-tbl" style="font-size:11px;">
+          <thead><tr><th>Sample</th><th style="text-align:right;">Predicted value</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODEL SETTINGS PAGE -->
+  <div id="tab-new" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+    <div class="mm-page-hd"><span id="mm-page-title">Model settings</span></div>
+    <div class="mm-top-bar">
+      <div style="display:flex;gap:10px;align-items:center;"><label>Model type:</label>
+        <select id="mm-type"><option value="quantification">Quantification</option><option value="outlier">Outlier</option></select>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;"><label>Method:</label>
+        <select id="mm-method"><option value="pls">PLS</option><option value="mpls">mPLS</option><option value="pca">PCA</option></select>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;"><label>Parameter:</label>
+        <select id="mm-param"></select>
+      </div>
+    </div>
+    <div class="mm-body2">
+      <div class="mm-left-col">
+        <div class="summary-sec"><div class="summary-title">Model</div>
+          <div class="summary-row"><span class="lbl">Name</span><span class="val" id="sum-name">—</span></div>
+          <div class="summary-row"><span class="lbl">Comment</span><span class="val" id="sum-comment">—</span></div>
+        </div>
+        <div class="summary-sec"><div class="summary-title">Data</div>
+          <div class="summary-row"><span class="lbl">Training</span><span class="val" id="sum-train">—</span></div>
+          <div class="summary-row"><span class="lbl">Validation</span><span class="val" id="sum-val">—</span></div>
+        </div>
+        <div class="summary-sec on"><div class="summary-title">Factors</div>
+          <div class="summary-row"><span class="lbl">Calibrated factors</span><span class="val" id="sum-cf">—</span></div>
+          <div class="summary-row"><span class="lbl">Cross validation type</span><span class="val" id="sum-cv">—</span></div>
+          <div class="summary-row"><span class="lbl">Number of sample blocks</span><span class="val" id="sum-cvk">—</span></div>
+          <div class="summary-row"><span class="lbl">Factor range</span><span class="val" id="sum-fr">—</span></div>
+        </div>
+        <div class="summary-sec"><div class="summary-title">Pretreatment</div>
+          <div class="summary-row"><span class="lbl">Template</span><span class="val" id="sum-pretemp">—</span></div>
+          <div class="summary-row"><span class="lbl">Derivative</span><span class="val" id="sum-prederiv">—</span></div>
+          <div class="summary-row"><span class="lbl">Variable selection block</span><span class="val" id="sum-presel">—</span></div>
+        </div>
+      </div>
+      <div class="mm-right-col">
+        <div class="detail-sec">
+          <div class="detail-title">Model</div>
+          <div class="detail-row"><label>Name *</label><input type="text" id="mm-name" placeholder="FatAl_01_PLS"/></div>
+          <div class="detail-row"><label>Comment</label><input type="text" id="mm-comment" placeholder="Optional comment"/></div>
+        </div>
+        <div class="detail-sec">
+          <div class="detail-title">Data</div>
+          <div class="detail-row"><label>Training set</label>
+            <select id="mm-train"><option value="training">Training only</option><option value="all">All samples with reference</option></select>
+          </div>
+          <div class="detail-row"><label>Validation set</label>
+            <select id="mm-val"><option value="validation">Validation only</option><option value="none">None</option></select>
+          </div>
+        </div>
+        <div class="detail-sec">
+          <div class="detail-title">Factors</div>
+          <div class="detail-row"><label>Calibrated factors</label><input type="number" id="mm-cf" value="16" min="1" max="40"/></div>
+          <div class="detail-row"><label>Auto-select</label>
+            <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);">
+              <input type="checkbox" id="mm-autofact" checked/>Use RMSEP optimum with 4%/factor penalty
+            </label>
+          </div>
+          <div style="margin-top:12px;font-weight:500;font-size:12px;margin-bottom:6px;">Cross validation</div>
+          <label class="detail-radio"><input type="radio" name="cv" value="none"/>None</label>
+          <label class="detail-radio"><input type="radio" name="cv" value="loo"/>Leave-one-out</label>
+          <label class="detail-radio"><input type="radio" name="cv" value="random" checked/>Random</label>
+          <label class="detail-radio"><input type="radio" name="cv" value="continuous"/>Continuous Blocks</label>
+          <label class="detail-radio"><input type="radio" name="cv" value="venetian"/>Venetian Blinds</label>
+          <div class="detail-row" style="margin-top:8px;"><label>Number of sample blocks</label><input type="number" id="mm-cvk" value="5" min="2" max="20"/></div>
+          <div style="margin-top:12px;font-weight:500;font-size:12px;margin-bottom:6px;">Factor range</div>
+          <div class="range-inputs">
+            <input type="number" id="mm-fr-start" value="1" min="1"/><span>−</span>
+            <input type="number" id="mm-fr-end" value="16" min="1"/><span>Step:</span>
+            <input type="number" id="mm-fr-step" value="1" min="1"/>
+          </div>
+          <div class="detail-row" style="margin-top:12px;"><label>Wavelength step (nm)</label>
+            <input type="number" id="mm-wlstep" value="0.5" min="0.1" max="2" step="0.1" title="Resampling step in nm. Use 0.1 nm for high-resolution spectra (Foss-style)."/>
+          </div>
+        </div>
+        <div class="detail-sec">
+          <div class="detail-title">Pretreatment</div>
+          <div class="detail-row"><label>Template</label>
+            <select id="mm-pre">
+              <option value="none">None</option>
+              <option value="snv">ISI SNV</option>
+              <option value="snv_detrend" selected>ISI SNV and ISI Detrend</option>
+              <option value="detrend">ISI Detrend</option>
+              <option value="scale_offset">ISI Scale and Offset</option>
+              <option value="msc">MSC</option>
+              <option value="emsc">EMSC</option>
+              <option value="norm_01">Normalize [0,1]</option>
+              <option value="norm_sum">Normalize by sum</option>
+              <option value="mean_center">Mean centering</option>
+              <option value="autoscale">Autoscaling</option>
+            </select>
+          </div>
+          <div class="detail-row"><label>Apply derivative</label>
+            <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);">
+              <input type="checkbox" id="mm-d-on" checked/>Savitzky-Golay
+            </label>
+          </div>
+          <div id="mm-d-block">
+            <div class="detail-row"><label>Derivative order</label>
+              <select id="mm-d-order"><option value="0">0</option><option value="1" selected>1</option><option value="2">2</option></select>
+            </div>
+            <div class="detail-row"><label>Gap</label><input type="number" id="mm-d-gap" value="16" min="1" max="50"/></div>
+            <div class="detail-row"><label>Smooth</label><input type="number" id="mm-d-smooth" value="16" min="1" max="50"/></div>
+            <div class="detail-row"><label>Smooth 2</label><input type="number" id="mm-d-smooth2" value="1" min="1" max="50"/></div>
+          </div>
+        </div>
+        <div class="detail-sec">
+          <div class="detail-title">Variable selection block</div>
+          <div class="detail-row"><label>Use maximum</label>
+            <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);">
+              <input type="checkbox" id="mm-vsel-max" checked/>Use full range
+            </label>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Available intervals (synchronized with Samples → Spectra):</div>
+          <div id="vsel-list">Loading...</div>
+        </div>
+        <div class="detail-sec">
+          <div class="detail-title">Outlier detection</div>
+          <div class="detail-row"><label>Method</label>
+            <select id="mm-outmethod">
+              <option value="none">None</option>
+              <option value="globalh">Global H (Mahalanobis)</option>
+              <option value="tstudent">T-student residuals</option>
+            </select>
+          </div>
+          <div class="detail-row"><label>Threshold</label><input type="number" id="mm-outthresh" value="3.0" min="1" max="10" step="0.1"/></div>
+        </div>
+      </div>
+    </div>
+    <div class="mm-foot">
+      <button class="btn-cancel" id="btn-cancel-new">Cancel</button>
+      <button class="btn-ok" id="btn-create-model">Create new</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Fullscreen chart overlay -->
+<div class="fs-overlay" id="fs-overlay">
+  <div class="fs-hd">
+    <span class="fs-hd-title" id="fs-title">Scores</span>
+    <div class="fs-toolbar" style="margin-left:20px;">
+      <button class="fs-tb-btn" id="fs-zoom-in">＋</button>
+      <button class="fs-tb-btn" id="fs-zoom-out">−</button>
+      <button class="fs-tb-btn" id="fs-zoom-reset">Reset zoom</button>
+      <button class="fs-tb-btn prim" id="fs-save">Save outliers</button>
+      <button class="fs-tb-btn warn" id="fs-recalc">Recalculate model</button>
+      <span id="fs-saving" style="font-size:11px;color:var(--text3);margin-left:12px;"></span>
+    </div>
+    <button class="fs-tb-btn" id="fs-close" style="margin-left:auto;">Close ×</button>
+  </div>
+  <div class="fs-body">
+    <div class="fs-chart">
+      <div id="fs-canvas-wrap">
+        <canvas id="fs-canvas"></canvas>
+        <canvas id="fs-sel-cv"></canvas>
+      </div>
+    </div>
+    <div class="fs-side">
+      <h4>Outliers (<span id="fs-out-count">0</span>)</h4>
+      <div class="fs-outlier-list" id="fs-outlier-list"></div>
+      <div style="margin-top:10px;font-size:10px;color:var(--text3);line-height:1.5;">
+        • Drag with left mouse to select<br>
+        • Right-click for context menu<br>
+        • Scroll = zoom<br>
+        • Click "Recalculate" to rebuild the model
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Context menu for fullscreen -->
+<div id="ctx-fs">
+  <div class="ci" id="ctx-fs-mark">Mark as outlier</div>
+  <div class="ci" id="ctx-fs-unmark">Unmark as outlier</div>
+  <div class="sep"></div>
+  <div class="ci" id="ctx-fs-none">Select none</div>
+  <div class="sep"></div>
+  <div class="ci" id="ctx-fs-reset">Reset zoom</div>
+</div>
+
+<!-- INFO MODAL -->
+<div class="overlay" id="m-info">
+  <div class="modal" style="width:540px;max-height:80vh;overflow:auto;background:#fff;border-radius:4px;padding:0;">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2);">
+      <div style="font-size:14px;font-weight:500;">Model statistics</div>
+      <button onclick="document.getElementById('m-info').classList.remove('on')" style="border:none;background:none;cursor:pointer;font-size:16px;color:#888;">&#x2715;</button>
+    </div>
+    <div id="info-body" style="padding:16px 20px;font-family:var(--mono);font-size:11.5px;color:var(--text);line-height:1.7;white-space:pre-wrap;background:#fff;"></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script type="module">
+import { auth, db, requireAuth, setupLogout, fillTopbarUser, toast } from '/shared/auth.js';
+import { renderTopbar } from '/shared/topbar.js';
+import { collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDoc, getDocs,
+         query, where, orderBy, limit, startAfter, serverTimestamp, documentId }
+  from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { ELEMENTS } from '/shared/config.js';
+
+document.getElementById('topbar-mount').innerHTML = renderTopbar('models');
+setupLogout('btn-logout');
+
+const S = {
+  user:null, project:null, models:[], selModel:null,
+  spectra:[], ssId:null, availParams:[], paramSettings:{},
+  charts:{}, fsChart:null, fsSelected:new Set(), fsData:null,
+  duplicatingFrom:null
+};
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+requireAuth(async (user, profile) => {
+  S.user = user;
+  fillTopbarUser(profile);
+  const proj = JSON.parse(
+    sessionStorage.getItem('dcc_project_'+user.uid) ||
+    sessionStorage.getItem('dcc_project') || 'null'
+  );
+  if (!proj) { toast('No project selected','warn'); return; }
+  S.project = proj;
+  document.getElementById('proj-name').textContent = proj.name;
+  // Load paramSettings: Firestore first, then sessionStorage
+  try {
+    const projDoc = await getDoc(doc(db,'projects',S.project.id));
+    if (projDoc.exists()){
+      const data = projDoc.data();
+      if (data.paramSettings) S.paramSettings = data.paramSettings;
+      else S.paramSettings = JSON.parse(sessionStorage.getItem('dcc_param_settings')||'{}');
+    } else {
+      S.paramSettings = JSON.parse(sessionStorage.getItem('dcc_param_settings')||'{}');
+    }
+  } catch(e) {
+    console.warn('Firestore paramSettings load failed, falling back to sessionStorage', e);
+    S.paramSettings = JSON.parse(sessionStorage.getItem('dcc_param_settings')||'{}');
+  }
+  await loadModels();
+  await loadSpectra();
+  const autoFlag = sessionStorage.getItem('dcc_models_open_new');
+  if (autoFlag) {
+    sessionStorage.removeItem('dcc_models_open_new');
+    setTimeout(()=>{
+      if (!S.spectra.length) { toast('No spectra available','warn'); return; }
+      document.getElementById('mm-method').value = autoFlag;
+      openNewModel();
+    }, 300);
+  }
+});
+
+async function loadModels() {
+  try {
+    const snap = await getDocs(collection(db,'projects',S.project.id,'models'));
+    S.models = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderModels();
+  } catch(e) { console.error(e); toast('Error loading models: '+e.message,'error'); }
+}
+
+async function loadSpectra() {
+  try {
+    showOverviewLoading('Loading spectra...', 0);
+    const ssSnap = await getDocs(collection(db,'projects',S.project.id,'sampleSets'));
+    if (ssSnap.empty) { hideOverviewLoading(); return; }
+    const ss = ssSnap.docs[0];
+    S.ssId = ss.id;
+    const totalTarget = ss.data().samples || 0;
+    S.spectra = [];
+    const col = collection(db,'projects',S.project.id,'sampleSets',ss.id,'spectra');
+    let last = null;
+    while (true) {
+      const q = last
+        ? query(col, orderBy(documentId()), startAfter(last), limit(300))
+        : query(col, orderBy(documentId()), limit(300));
+      const snap = await getDocs(q);
+      if (snap.empty) break;
+      S.spectra.push(...snap.docs.map(d=>d.data()));
+      last = snap.docs[snap.docs.length-1];
+      const pct = totalTarget ? Math.round(S.spectra.length/totalTarget*100) : 50;
+      showOverviewLoading(`Loading spectra... ${S.spectra.length}${totalTarget?'/'+totalTarget:''}`, pct);
+      if (snap.docs.length < 300) break;
+    }
+    S.availParams = ELEMENTS.filter(el=>S.spectra.some(s=>s.referenceValues?.[el]!==undefined));
+    const sel = document.getElementById('mm-param');
+    sel.innerHTML = S.availParams.map(p=>`<option value="${p}">${p}</option>`).join('');
+    updateVselDisplay();
+    hideOverviewLoading();
+  } catch(e) { console.error(e); hideOverviewLoading(); toast('Error loading spectra: '+e.message,'error'); }
+}
+
+function showOverviewLoading(msg, pct) {
+  const e = document.getElementById('overview-loading');
+  if (e) { e.style.display='block'; document.getElementById('overview-msg').textContent=msg; document.getElementById('overview-bar').style.width=(pct||0)+'%'; }
+}
+function hideOverviewLoading() { const e=document.getElementById('overview-loading'); if (e) e.style.display='none'; }
+
+// ══════════════════════════════════════════════════════════════
+// RENDER MODELS
+// ══════════════════════════════════════════════════════════════
+function renderModels() {
+  const tbody = document.getElementById('models-tbody');
+  if (!S.models.length) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text3);padding:30px;font-family:var(--font);">No model yet — click "New model" to create one</td></tr>';
+  } else {
+    tbody.innerHTML = S.models.map(m=>{
+      const st = m.status==='Calculated'?'status-cal':m.status==='Published'?'status-pub':m.status==='Error'?'status-err':m.status==='Calculating'?'status-calc':'status-new';
+      const fmt = v => v!=null && !isNaN(v) ? Number(v).toFixed(4) : '—';
+      return `<tr class="${S.selModel?.id===m.id?'sel':''}" data-id="${m.id}">
+        <td class="nm">${m.name}</td><td>${m.parameter||'—'}</td><td>${(m.method||'').toUpperCase()}</td>
+        <td class="${st}">${m.status||'New'}</td>
+        <td style="text-align:right;">${fmt(m.rmsepCross)}</td>
+        <td style="text-align:right;">${fmt(m.rmsepCal)}</td>
+        <td style="text-align:right;">${fmt(m.rmsepVal)}</td>
+        <td style="text-align:right;">${fmt(m.r2)}</td>
+        <td style="text-align:right;">${m.calibratedF||'—'}</td>
+        <td>${m.createdAt?(m.createdAt.toDate?m.createdAt.toDate():new Date(m.createdAt.seconds*1000)).toLocaleDateString('fr-FR'):'—'}</td>
+        <td><div class="act-icons">
+          <button class="act-ic" title="Info" data-info="${m.id}">&#x24D8;</button>
+          <button class="act-ic" title="Recalculate" data-recalc="${m.id}">&#x21BB;</button>
+          <button class="act-ic" title="Duplicate" data-dup="${m.id}">&#x2398;</button>
+          <button class="act-ic" title="Delete" data-del="${m.id}">&#x1F5D1;</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+    tbody.querySelectorAll('[data-id]').forEach(r=>r.addEventListener('click',(e)=>{
+      if (e.target.closest('.act-ic')) return;
+      S.selModel = S.models.find(m=>m.id===r.dataset.id)||null;
+      document.getElementById('btn-delete-model').disabled=false;
+      document.getElementById('btn-view-details').disabled=false;
+      document.getElementById('btn-duplicate-model').disabled=false;
+      renderModels();
+    }));
+    tbody.querySelectorAll('[data-info]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation(); showInfoModal(b.dataset.info);}));
+    tbody.querySelectorAll('[data-recalc]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation(); recalculateModel(b.dataset.recalc);}));
+    tbody.querySelectorAll('[data-dup]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation(); duplicateModel(b.dataset.dup);}));
+    tbody.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',async e=>{
+      e.stopPropagation();
+      const m = S.models.find(mm=>mm.id===b.dataset.del);
+      if (!confirm(`Delete model "${m.name}"?`)) return;
+      await deleteDoc(doc(db,'projects',S.project.id,'models',m.id));
+      S.models = S.models.filter(mm=>mm.id!==m.id);
+      if (S.selModel?.id===m.id) S.selModel=null;
+      renderModels();
+      toast('Model deleted','warn');
+    }));
+  }
+  document.getElementById('models-count').textContent = S.models.length + ' model' + (S.models.length>1?'s':'');
+  const pm = document.getElementById('pred-model');
+  if (pm) pm.innerHTML = S.models.filter(m=>m.status==='Calculated'||m.status==='Published').map(m=>`<option value="${m.id}">${m.name} (${m.parameter} — ${(m.method||'').toUpperCase()})</option>`).join('');
+}
+
+function viewModelDetails(id) {
+  const m = S.models.find(mm=>mm.id===id);
+  if (!m) return;
+  S.selModel = m;
+  renderModels();
+  document.querySelectorAll('[data-mt]').forEach(x=>x.classList.remove('on'));
+  document.querySelector('[data-mt="details"]').classList.add('on');
+  ['overview','details','predict'].forEach(n=>{document.getElementById('tab-'+n).style.display = n==='details'?'block':'none';});
+  document.getElementById('tab-new').style.display = 'none';
+  renderDetails(m);
+}
+
+function showInfoModal(id){
+  const m = S.models.find(mm=>mm.id===id);
+  if (!m) return;
+  let md={};
+  try { md=typeof m.modelData==='string'?JSON.parse(m.modelData):(m.modelData||{}); } catch(e){}
+  const fmt=(v,d=4)=>v!=null && !isNaN(v) ? Number(v).toFixed(d) : '—';
+  const PRE_LBL={none:'None',snv:'ISI SNV',snv_detrend:'ISI SNV + Detrend',detrend:'ISI Detrend',scale_offset:'ISI Scale and Offset',msc:'MSC',emsc:'EMSC',norm_01:'Normalize [0,1]',norm_sum:'Normalize by sum',mean_center:'Mean centering',autoscale:'Autoscaling'};
+  const CV_LBL={none:'None',loo:'Leave-one-out',random:'Random',continuous:'Continuous blocks',venetian:'Venetian blinds'};
+
+  // Wavelength selection
+  const ps = S.paramSettings[m.parameter];
+  const wlStr = (m.useMaxVar !== false || !ps || ps.useAll || !ps.ranges?.length)
+    ? 'Full range' : ps.ranges.map(r=>`${r.from}–${r.to} nm`).join(', ');
+
+  const outliers = (m.spectralOutliers || []).length;
+  const txt = `MODEL OVERVIEW
+─────────────────────────────────────────
+Name              : ${m.name}
+Comment           : ${m.comment || '—'}
+Parameter         : ${m.parameter}
+Method            : ${(m.method||'').toUpperCase()}
+Type              : ${m.type || 'quantification'}
+Status            : ${m.status || 'Calculated'}
+Created           : ${m.createdAt ? (m.createdAt.toDate ? m.createdAt.toDate() : new Date(m.createdAt.seconds*1000)).toLocaleString('fr-FR') : '—'}
+
+PRETREATMENT
+─────────────────────────────────────────
+Template          : ${PRE_LBL[m.pretreatment]||m.pretreatment}
+Derivative        : ${m.derivOn ? `${m.derivOrder||1}, ${m.derivGap||16}, ${m.derivSmooth||16}, ${m.derivSmooth2||1}` : '— (off)'}
+Wavelength range  : ${wlStr}
+Wavelength step   : ${m.wlStep || 0.5} nm
+
+CROSS-VALIDATION
+─────────────────────────────────────────
+Type              : ${CV_LBL[m.cvType]||m.cvType||'—'}
+Sample blocks     : ${m.cvK || '—'}
+Factor range      : ${m.factorRange || '—'}
+Calibrated factors: ${m.calibratedF || '—'}
+Max factors       : ${m.maxF || '—'}
+
+ERROR STATISTICS
+─────────────────────────────────────────
+RMSEP (cal)       : ${fmt(m.rmsepCal)}
+RMSEP (cross-val) : ${fmt(m.rmsepCross)}
+RMSEP (val)       : ${fmt(m.rmsepVal)}
+SEC               : ${fmt(m.sec)}
+SEP               : ${fmt(m.sep)}
+
+REGRESSION STATISTICS (Training)
+─────────────────────────────────────────
+Slope             : ${fmt(m.slope, 3)}
+Intercept         : ${fmt(m.intercept, 3)}
+Bias              : ${fmt(m.bias, 3)}
+R² (training)     : ${fmt(md.r2train ?? m.r2, 4)}
+R² (cal)          : ${fmt(md.r2cal, 4)}
+R² (validation)   : ${fmt(md.r2val, 4)}
+
+OUTLIERS
+─────────────────────────────────────────
+Spectral outliers : ${outliers} sample${outliers>1?'s':''} excluded`;
+
+  document.getElementById('info-body').textContent = txt;
+  document.getElementById('m-info').classList.add('on');
+}
+
+function duplicateModel(id) {
+  const m = S.models.find(mm=>mm.id===id);
+  if (!m) return;
+  // Open new-model form pre-filled with model's config + .2 suffix
+  S.duplicatingFrom = m;
+  openNewModel();
+  // Fill fields
+  document.getElementById('mm-name').value = m.name + '.2';
+  document.getElementById('mm-comment').value = m.comment || '';
+  document.getElementById('mm-type').value = m.type || 'quantification';
+  document.getElementById('mm-method').value = m.method || 'pls';
+  if (m.parameter) document.getElementById('mm-param').value = m.parameter;
+  document.getElementById('mm-cf').value = m.calibratedF || 16;
+  document.getElementById('mm-pre').value = m.pretreatment || 'snv_detrend';
+  document.getElementById('mm-d-on').checked = !!m.derivOn;
+  document.getElementById('mm-d-order').value = m.derivOrder || 1;
+  document.getElementById('mm-d-gap').value = m.derivGap || 16;
+  document.getElementById('mm-d-smooth').value = m.derivSmooth || 16;
+  document.getElementById('mm-d-smooth2').value = m.derivSmooth2 || 1;
+  document.getElementById('mm-vsel-max').checked = m.useMaxVar !== false;
+  const cv = m.cvType || 'random';
+  const cvRadio = document.querySelector(`input[name="cv"][value="${cv}"]`);
+  if (cvRadio) cvRadio.checked = true;
+  document.getElementById('mm-cvk').value = m.cvK || 5;
+  document.getElementById('mm-wlstep').value = m.wlStep || 0.5;
+  if (m.factorRange) {
+    const [s,e,st] = (m.factorRange+'-1-1').split('-');
+    document.getElementById('mm-fr-start').value = s;
+    document.getElementById('mm-fr-end').value = e;
+    document.getElementById('mm-fr-step').value = st;
+  }
+  refreshSummary();
+}
+
+async function recalculateModel(id) {
+  const m = S.models.find(mm=>mm.id===id);
+  if (!m) return;
+  if (!confirm(`Recalculate "${m.name}" with same settings?`)) return;
+  const config = extractConfigFromModel(m);
+  config.overwriteId = m.id;
+  await buildModel(config);
+}
+
+function extractConfigFromModel(m) {
+  return {
+    name: m.name,
+    comment: m.comment||'',
+    type: m.type,
+    method: m.method,
+    parameter: m.parameter,
+    trainingSet: 'training',
+    validationSet: 'validation',
+    cf: m.calibratedF || 16,
+    autoFactors: true,
+    cvType: m.cvType || 'random',
+    cvK: m.cvK || 5,
+    frStart: 1, frEnd: 16, frStep: 1,
+    wlStep: m.wlStep || 0.5,
+    pretreatment: m.pretreatment,
+    derivOn: m.derivOn !== false,
+    derivOrder: m.derivOrder || 1,
+    derivGap: m.derivGap || 16,
+    derivSmooth: m.derivSmooth || 16,
+    derivSmooth2: m.derivSmooth2 || 1,
+    useMaxVar: m.useMaxVar !== false,
+    outlierMethod: 'none', outlierThresh: 3.0
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════════════════════
+document.querySelectorAll('[data-mt]').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('[data-mt]').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  ['overview','details','predict'].forEach(n=>{document.getElementById('tab-'+n).style.display = t.dataset.mt===n?'block':'none';});
+  document.getElementById('tab-new').style.display = 'none';
+  document.getElementById('tb-overview').style.display = t.dataset.mt==='overview'?'flex':'none';
+  if (t.dataset.mt==='details' && S.selModel) renderDetails(S.selModel);
+}));
+
+document.getElementById('btn-view-details').addEventListener('click',()=>S.selModel && viewModelDetails(S.selModel.id));
+document.getElementById('btn-delete-model').addEventListener('click',async()=>{
+  if (!S.selModel) return;
+  if (!confirm(`Delete model "${S.selModel.name}"?`)) return;
+  await deleteDoc(doc(db,'projects',S.project.id,'models',S.selModel.id));
+  S.models = S.models.filter(m=>m.id!==S.selModel.id);
+  S.selModel = null;
+  document.getElementById('btn-delete-model').disabled=true;
+  document.getElementById('btn-view-details').disabled=true;
+  document.getElementById('btn-duplicate-model').disabled=true;
+  renderModels();
+  toast('Model deleted','warn');
+});
+document.getElementById('btn-duplicate-model').addEventListener('click',()=>S.selModel && duplicateModel(S.selModel.id));
+document.getElementById('btn-recommended').addEventListener('click',()=>{
+  openNewModel();
+  document.getElementById('mm-method').value='mpls';
+  document.getElementById('mm-pre').value='snv_detrend';
+  document.getElementById('mm-d-on').checked=true;
+  document.getElementById('mm-d-order').value='1';
+  document.getElementById('mm-d-gap').value='16';
+  document.getElementById('mm-d-smooth').value='16';
+  document.getElementById('mm-d-smooth2').value='1';
+  document.querySelector('input[name="cv"][value="continuous"]').checked=true;
+  document.getElementById('mm-cvk').value='5';
+  refreshSummary();
+});
+
+// Details buttons
+document.getElementById('btn-close-details').addEventListener('click',()=>{
+  document.querySelectorAll('[data-mt]').forEach(x=>x.classList.remove('on'));
+  document.querySelector('[data-mt="overview"]').classList.add('on');
+  ['overview','details','predict'].forEach(n=>{document.getElementById('tab-'+n).style.display = n==='overview'?'block':'none';});
+  document.getElementById('tb-overview').style.display='flex';
+});
+document.getElementById('btn-recalculate-dt').addEventListener('click',()=>S.selModel && recalculateModel(S.selModel.id));
+document.getElementById('btn-change-settings').addEventListener('click',()=>S.selModel && duplicateModel(S.selModel.id));
+
+// ══════════════════════════════════════════════════════════════
+// NEW MODEL PAGE
+// ══════════════════════════════════════════════════════════════
+document.getElementById('btn-new').addEventListener('click',()=>{ S.duplicatingFrom=null; openNewModel(); });
+document.getElementById('btn-cancel-new').addEventListener('click',closeNewModel);
+
+function openNewModel() {
+  if (!S.spectra.length) { toast('Load spectra first','warn'); return; }
+  ['overview','details','predict'].forEach(n=>{document.getElementById('tab-'+n).style.display='none';});
+  document.getElementById('tab-new').style.display='flex';
+  document.getElementById('tb-overview').style.display='none';
+  const title = S.duplicatingFrom ? `Model settings — Duplicate of ${S.duplicatingFrom.name}` : 'Model settings — New model';
+  document.getElementById('mm-page-title').textContent = title;
+  if (!S.duplicatingFrom) refreshAutoName();
+  // Auto-uncheck useMaxVar if param has custom ranges
+  const param = document.getElementById('mm-param').value;
+  const ps = S.paramSettings[param];
+  if (!S.duplicatingFrom && ps && !ps.useAll && ps.ranges?.length) {
+    document.getElementById('mm-vsel-max').checked = false;
+  }
+  refreshSummary();
+  updateVselDisplay();
+}
+function closeNewModel() {
+  document.getElementById('tab-new').style.display='none';
+  document.querySelectorAll('[data-mt]').forEach(x=>x.classList.remove('on'));
+  document.querySelector('[data-mt="overview"]').classList.add('on');
+  document.getElementById('tab-overview').style.display='block';
+  document.getElementById('tb-overview').style.display='flex';
+  S.duplicatingFrom = null;
+}
+
+function refreshAutoName() {
+  const param = document.getElementById('mm-param').value;
+  const method = document.getElementById('mm-method').value;
+  const same = S.models.filter(m=>m.parameter===param && m.method===method);
+  const n = same.length + 1;
+  const nn = String(n).padStart(2,'0');
+  document.getElementById('mm-name').value = `${param}_${nn}_${method.toUpperCase()}`;
+}
+
+function refreshSummary() {
+  const name = document.getElementById('mm-name').value || '—';
+  const comment = document.getElementById('mm-comment').value || '—';
+  const param = document.getElementById('mm-param').value;
+  const trainMode = document.getElementById('mm-train').value;
+  const valMode = document.getElementById('mm-val').value;
+  const cf = document.getElementById('mm-cf').value;
+  const cv = document.querySelector('input[name="cv"]:checked')?.value || 'none';
+  const cvk = document.getElementById('mm-cvk').value;
+  const frS = document.getElementById('mm-fr-start').value;
+  const frE = document.getElementById('mm-fr-end').value;
+  const frStep = document.getElementById('mm-fr-step').value;
+  const pre = document.getElementById('mm-pre').value;
+  const dOn = document.getElementById('mm-d-on').checked;
+  const dO = document.getElementById('mm-d-order').value;
+  const dG = document.getElementById('mm-d-gap').value;
+  const dS = document.getElementById('mm-d-smooth').value;
+  const dS2 = document.getElementById('mm-d-smooth2').value;
+  const useMax = document.getElementById('mm-vsel-max').checked;
+  const PRE_LBL = {none:'None',snv:'ISI SNV',snv_detrend:'ISI SNV and ISI Detrend',detrend:'ISI Detrend',scale_offset:'ISI Scale and Offset',msc:'MSC',emsc:'EMSC',norm_01:'Normalize [0,1]',norm_sum:'Normalize by sum',mean_center:'Mean centering',autoscale:'Autoscaling'};
+  const CV_LBL = {none:'None',loo:'Leave-one-out',random:'Random',continuous:'Continuous blocks',venetian:'Venetian blinds'};
+  const avail = S.spectra.filter(s=>s.referenceValues?.[param]!==undefined && !s.isSpectralOutlier);
+  const tSet = trainMode==='training' ? avail.filter(s=>(s.logicalSet||'').toLowerCase()==='training') : avail;
+  const vSet = valMode==='validation' ? avail.filter(s=>(s.logicalSet||'').toLowerCase()==='validation') : [];
+  document.getElementById('sum-name').textContent=name;
+  document.getElementById('sum-comment').textContent=comment;
+  document.getElementById('sum-train').textContent=`${trainMode==='training'?'Training':'All'} (${param}) — ${tSet.length} samples`;
+  document.getElementById('sum-val').textContent=valMode==='validation'?`Validation (${param}) — ${vSet.length} samples`:'None';
+  document.getElementById('sum-cf').textContent=cf;
+  document.getElementById('sum-cv').textContent=CV_LBL[cv];
+  document.getElementById('sum-cvk').textContent=(cv==='continuous'||cv==='venetian'||cv==='random')?cvk:'—';
+  document.getElementById('sum-fr').textContent=`${frS} − ${frE} − ${frStep}`;
+  document.getElementById('sum-pretemp').textContent=PRE_LBL[pre]||pre;
+  document.getElementById('sum-prederiv').textContent=dOn?`${dO}, ${dG}, ${dS}, ${dS2}`:'—';
+  const ps = S.paramSettings[param];
+  if (useMax || !ps || ps.useAll) {
+    const wl0=S.spectra[0]?.wavelengths?.[0]||178, wlL=S.spectra[0]?.wavelengths?.at(-1)||427;
+    document.getElementById('sum-presel').textContent=`${wl0}−${wlL} nm`;
+  } else if (ps.ranges?.length) {
+    document.getElementById('sum-presel').textContent=ps.ranges.map(r=>`${r.from}−${r.to}(0.5)`).join(', ');
+  } else document.getElementById('sum-presel').textContent='—';
+}
+
+function updateVselDisplay() {
+  const param = document.getElementById('mm-param').value;
+  const listEl = document.getElementById('vsel-list');
+  if (!param) { listEl.innerHTML='—'; return; }
+  const ps = S.paramSettings[param];
+  if (!ps || ps.useAll || !ps.ranges?.length) {
+    const wl0=S.spectra[0]?.wavelengths?.[0]||178, wlL=S.spectra[0]?.wavelengths?.at(-1)||427;
+    listEl.innerHTML=`<div class="vsel-item"><input type="checkbox" id="vs_all" checked disabled/><label>Full range ${wl0}−${wlL} nm</label></div><div style="margin-top:8px;font-size:10px;color:var(--text3);">No custom intervals — set them in Samples → Review → Per-parameter settings</div>`;
+    return;
+  }
+  listEl.innerHTML=ps.ranges.map((r,i)=>`<div class="vsel-item"><input type="checkbox" id="vs_${i}" data-idx="${i}" checked/><label for="vs_${i}">${r.from}−${r.to} nm ${r.label?'('+r.label+')':''}</label></div>`).join('');
+}
+
+['mm-name','mm-comment','mm-type','mm-method','mm-param','mm-train','mm-val','mm-cf','mm-cvk','mm-fr-start','mm-fr-end','mm-fr-step','mm-pre','mm-d-on','mm-d-order','mm-d-gap','mm-d-smooth','mm-d-smooth2','mm-vsel-max'].forEach(id=>{
+  const el=document.getElementById(id);
+  if (el) el.addEventListener('change',()=>{refreshSummary(); if(id==='mm-param'||id==='mm-method') { if(!S.duplicatingFrom) refreshAutoName(); } if(id==='mm-param') updateVselDisplay();});
+  if (el && el.tagName==='INPUT' && el.type==='text') el.addEventListener('input',refreshSummary);
+});
+document.querySelectorAll('input[name="cv"]').forEach(r=>r.addEventListener('change',refreshSummary));
+document.getElementById('mm-d-on').addEventListener('change',function(){
+  document.getElementById('mm-d-block').style.opacity=this.checked?'1':'0.4';
+  document.querySelectorAll('#mm-d-block input, #mm-d-block select').forEach(el=>el.disabled=!this.checked);
+});
+
+// ══════════════════════════════════════════════════════════════
+// PREPROCESSING FUNCTIONS
+// ══════════════════════════════════════════════════════════════
+function snv(s){const n=s.length,m=s.reduce((a,b)=>a+b,0)/n,sd=Math.sqrt(s.reduce((ss,v)=>ss+(v-m)**2,0)/Math.max(1,n-1));return sd===0?s.map(()=>0):s.map(v=>(v-m)/sd);}
+function detrend(s){const n=s.length,xm=(n-1)/2,ym=s.reduce((a,b)=>a+b,0)/n;let num=0,den=0;s.forEach((v,i)=>{num+=(i-xm)*(v-ym);den+=(i-xm)**2;});const sl=num/(den||1);return s.map((v,i)=>v-(sl*i+(ym-sl*xm)));}
+function scaleOffset(s){const mn=Math.min(...s),mx=Math.max(...s);return mx===mn?s.map(()=>0):s.map(v=>(v-mn)/(mx-mn));}
+function normSum(s){const sum=s.reduce((a,b)=>a+Math.abs(b),0);return sum===0?[...s]:s.map(v=>v/sum);}
+function msc(v,ref){if(!ref||ref.length!==v.length)return v;const n=v.length,mx=v.reduce((a,b)=>a+b,0)/n,mr=ref.reduce((a,b)=>a+b,0)/n;let num=0,den=0;for(let i=0;i<n;i++){num+=(ref[i]-mr)*(v[i]-mx);den+=(ref[i]-mr)**2;}const b=num/(den||1),a=mx-b*mr;return v.map(x=>(x-a)/b);}
+function emsc(v,ref){return detrend(msc(v,ref));}
+function savgolDeriv(s,order,gap,smooth){
+  if (order===0) return [...s];
+  const n=s.length; let x=[...s];
+  if (smooth>1) {
+    const sm=new Array(n);
+    for (let i=0;i<n;i++){ let sum=0,cnt=0; for (let j=-smooth;j<=smooth;j++){ if (i+j>=0&&i+j<n){sum+=x[i+j];cnt++;}} sm[i]=cnt?sum/cnt:x[i]; }
+    x=sm;
+  }
+  const r=new Array(n).fill(0);
+  for (let i=gap;i<n-gap;i++){
+    if (order===1) r[i]=(x[i+gap]-x[i-gap])/(2*gap);
+    else if (order===2) r[i]=(x[i+gap]-2*x[i]+x[i-gap])/(gap*gap);
+  }
+  return r;
+}
+function meanCenter(s){const m=s.reduce((a,b)=>a+b,0)/s.length;return s.map(v=>v-m);}
+function autoScale(s){const m=s.reduce((a,b)=>a+b,0)/s.length;const sd=Math.sqrt(s.reduce((ss,v)=>ss+(v-m)**2,0)/Math.max(1,s.length-1));return sd===0?s.map(()=>0):s.map(v=>(v-m)/sd);}
+
+function applyPreprocessing(intensities, cfg, mscRef) {
+  let out=[...intensities];
+  switch(cfg.pretreatment){
+    case 'snv': out=snv(out); break;
+    case 'detrend': out=detrend(out); break;
+    case 'snv_detrend': out=detrend(snv(out)); break;
+    case 'scale_offset': out=scaleOffset(out); break;
+    case 'msc': out=msc(out,mscRef); break;
+    case 'emsc': out=emsc(out,mscRef); break;
+    case 'norm_01': { const mn=Math.min(...out),mx=Math.max(...out); out=mx===mn?out.map(()=>0):out.map(v=>(v-mn)/(mx-mn)); break; }
+    case 'norm_sum': out=normSum(out); break;
+    case 'mean_center': out=meanCenter(out); break;
+    case 'autoscale': out=autoScale(out); break;
+  }
+  if (cfg.derivOn) out=savgolDeriv(out,cfg.derivOrder||1,cfg.derivGap||16,cfg.derivSmooth||16);
+  return out;
+}
+
+// Matrix ops
+function meanCol(M){const n=M.length,p=M[0].length;const m=new Array(p).fill(0);for(let i=0;i<n;i++)for(let j=0;j<p;j++)m[j]+=M[i][j];for(let j=0;j<p;j++)m[j]/=n;return m;}
+function centerMatrix(M,m){return M.map(r=>r.map((v,j)=>v-m[j]));}
+function dotVec(a,b){let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s;}
+function normVec(v){return Math.sqrt(dotVec(v,v));}
+function matVec(M,v){return M.map(r=>dotVec(r,v));}
+function matTVec(M,v){const p=M[0].length;const r=new Array(p).fill(0);for(let i=0;i<M.length;i++)for(let j=0;j<p;j++)r[j]+=M[i][j]*v[i];return r;}
+function outerSubtract(M,u,v){for(let i=0;i<u.length;i++)for(let j=0;j<v.length;j++)M[i][j]-=u[i]*v[j];}
+
+// NIPALS
+function pcaNIPALS(X,nComp,maxIter=100,tol=1e-8){
+  const n=X.length,p=X[0].length;
+  const Xr=X.map(r=>[...r]);
+  const scores=[],loadings=[],eigenvalues=[];
+  for (let c=0;c<nComp;c++){
+    let t=Xr.map(r=>r[c%p]);
+    let p_vec=new Array(p).fill(0);
+    for (let it=0;it<maxIter;it++){
+      const tt=dotVec(t,t); if(tt<1e-20) break;
+      p_vec=matTVec(Xr,t).map(x=>x/tt);
+      const pn=normVec(p_vec); if(pn<1e-20) break;
+      p_vec=p_vec.map(x=>x/pn);
+      const tN=matVec(Xr,p_vec);
+      let d=0; for(let i=0;i<n;i++) d+=(tN[i]-t[i])**2;
+      t=tN;
+      if (Math.sqrt(d)<tol) break;
+    }
+    scores.push(t); loadings.push(p_vec); eigenvalues.push(dotVec(t,t));
+    outerSubtract(Xr,t,p_vec);
+  }
+  const T=Array.from({length:n},(_,i)=>scores.map(s=>s[i]));
+  const P=Array.from({length:p},(_,j)=>loadings.map(l=>l[j]));
+  return {T,P,eigenvalues};
+}
+function plsNIPALS(X,y,nComp,maxIter=100,tol=1e-8){
+  const n=X.length,p=X[0].length;
+  const Xr=X.map(r=>[...r]); const yr=[...y];
+  const T=[],W=[],P=[],Q=[];
+  for (let c=0;c<nComp;c++){
+    let w=matTVec(Xr,yr);
+    const wn=normVec(w); if(wn<1e-20) break;
+    w=w.map(x=>x/wn);
+    const t=matVec(Xr,w);
+    const tt=dotVec(t,t); if(tt<1e-20) break;
+    const p_v=matTVec(Xr,t).map(x=>x/tt);
+    const q=dotVec(yr,t)/tt;
+    T.push(t); W.push(w); P.push(p_v); Q.push(q);
+    outerSubtract(Xr,t,p_v);
+    for(let i=0;i<n;i++) yr[i]-=t[i]*q;
+  }
+  return {T,W,P,Q,nComp:T.length};
+}
+function mplsNIPALS(X,y,nComp){
+  // Modified PLS — iterative re-weighting (3 iterations for stability)
+  let weights = new Array(X.length).fill(1);
+  let lastModel = null;
+  for (let iter=0; iter<3; iter++){
+    const Xw = X.map((r,i)=>r.map(v=>v*Math.sqrt(weights[i])));
+    const yw = y.map((v,i)=>v*Math.sqrt(weights[i]));
+    lastModel = plsNIPALS(Xw,yw,nComp);
+    if (iter === 2) break;
+    // Predict on original (unweighted) X
+    const yHat = plsRegress(lastModel, X, lastModel.nComp);
+    const residuals = y.map((v,i)=>Math.abs(v-yHat[i]));
+    const med = [...residuals].sort((a,b)=>a-b)[Math.floor(residuals.length/2)] || 1;
+    weights = residuals.map(r => r<=med*2.5 ? 1 : Math.max(0.2, med*2.5/r));
+  }
+  return lastModel;
+}
+function plsRegress(pls,Xc,ncUse){
+  const nC=Math.min(ncUse,pls.nComp);
+  const Xr=Xc.map(r=>[...r]);
+  const yHat=new Array(Xc.length).fill(0);
+  for (let c=0;c<nC;c++){
+    const t=matVec(Xr,pls.W[c]);
+    for (let i=0;i<yHat.length;i++) yHat[i]+=t[i]*pls.Q[c];
+    outerSubtract(Xr,t,pls.P[c]);
+  }
+  return yHat;
+}
+
+// Build matrix using wavelength selection from paramSettings
+function buildMatrix(spectra,config,mscRef){
+  const wl=spectra[0].wavelengths;
+  const paramCfg=S.paramSettings[config.parameter];
+  // Résolution native du spectre
+  const nativeStep = wl.length > 1 ? Math.abs(wl[1]-wl[0]) : 0.5;
+  // wlStep demandé : si > nativeStep → sous-échantillonnage. Si <= → on garde tout
+  const reqStep = config.wlStep || nativeStep;
+  const stride = Math.max(1, Math.round(reqStep / nativeStep));
+
+  let indices=[];
+  if (!config.useMaxVar && paramCfg && !paramCfg.useAll && paramCfg.ranges?.length) {
+    const used=new Set();
+    paramCfg.ranges.forEach(r=>{
+      for(let i=0;i<wl.length;i++) if(wl[i]>=r.from && wl[i]<=r.to) used.add(i);
+    });
+    indices=[...used].sort((a,b)=>a-b);
+  } else indices=Array.from({length:wl.length},(_,i)=>i);
+
+  // Apply user-requested wavelength step (resampling stride)
+  if (stride > 1) indices = indices.filter((_,k)=>k%stride===0);
+
+  // Final safety cap
+  const MAX_P=1500;
+  if (indices.length>MAX_P) { const step=Math.ceil(indices.length/MAX_P); indices=indices.filter((_,i)=>i%step===0); }
+
+  const matrix=spectra.map(s=>{
+    const pp=applyPreprocessing(s.intensities,config,mscRef);
+    return indices.map(i=>pp[i]||0);
+  });
+  return {matrix,indices,wavelengths:indices.map(i=>wl[i])};
+}
+
+// Cross-validation
+function buildCvFolds(n,cvType,k){
+  if (cvType==='loo') return Array.from({length:n},(_,i)=>new Set([i]));
+  if (cvType==='continuous') {
+    const folds=[]; const sz=Math.ceil(n/k);
+    for (let f=0;f<k;f++){ const s=new Set(); for(let i=f*sz;i<Math.min(n,(f+1)*sz);i++)s.add(i); if(s.size)folds.push(s); }
+    return folds;
+  }
+  if (cvType==='venetian') { const folds=Array.from({length:k},()=>new Set()); for(let i=0;i<n;i++) folds[i%k].add(i); return folds; }
+  if (cvType==='random') {
+    const idx=Array.from({length:n},(_,i)=>i);
+    // Deterministic shuffle based on seed (= n) for reproducibility
+    let seed = n*7919 + 31;
+    const rand = () => { seed = (seed*9301 + 49297) % 233280; return seed/233280; };
+    for (let i=n-1;i>0;i--){ const j=Math.floor(rand()*(i+1)); [idx[i],idx[j]]=[idx[j],idx[i]]; }
+    const folds=Array.from({length:k},()=>new Set());
+    idx.forEach((orig,pos)=>folds[pos%k].add(orig));
+    return folds;
+  }
+  return [];
+}
+function crossValidatePLS(X_raw,y,cvType,k,nComp,isMPLS){
+  if (cvType==='none') return new Array(nComp).fill(NaN);
+  const folds=buildCvFolds(X_raw.length,cvType,k);
+  if (!folds.length) return new Array(nComp).fill(NaN);
+  const seArr=new Array(nComp).fill(0), cnts=new Array(nComp).fill(0);
+  for (const testIdx of folds){
+    const Xtr=[],ytr=[],Xts=[],yts=[];
+    X_raw.forEach((r,i)=>{ if(testIdx.has(i)){Xts.push(r);yts.push(y[i]);} else {Xtr.push(r);ytr.push(y[i]);} });
+    if (!Xtr.length||!Xts.length) continue;
+    const xm=meanCol(Xtr),ym=ytr.reduce((a,b)=>a+b,0)/ytr.length;
+    const Xtr_c=centerMatrix(Xtr,xm), Xts_c=centerMatrix(Xts,xm);
+    const y_c=ytr.map(v=>v-ym);
+    const pls=isMPLS?mplsNIPALS(Xtr_c,y_c,nComp):plsNIPALS(Xtr_c,y_c,nComp);
+    for (let nc=1;nc<=pls.nComp;nc++){
+      const yhat=plsRegress(pls,Xts_c,nc).map(v=>v+ym);
+      let se=0; for(let i=0;i<yhat.length;i++) se+=(yhat[i]-yts[i])**2;
+      seArr[nc-1]+=se; cnts[nc-1]+=yhat.length;
+    }
+  }
+  return seArr.map((se,i)=>cnts[i]>0?Math.sqrt(se/cnts[i]):NaN);
+}
+
+// Repeatability (s) vs Factors: std of predictions across CV folds
+function computeRepeatability(X_raw,y,cvType,k,nComp,isMPLS){
+  if (cvType==='none') return new Array(nComp).fill(NaN);
+  const folds=buildCvFolds(X_raw.length,cvType,Math.min(k,5));
+  const n=X_raw.length;
+  // For each sample, store predictions across folds it's in test set
+  const sampPreds=Array.from({length:n},()=>Array.from({length:nComp},()=>[]));
+  for (const testIdx of folds){
+    const Xtr=[],ytr=[],tsOrig=[];
+    X_raw.forEach((r,i)=>{ if(!testIdx.has(i)){Xtr.push(r);ytr.push(y[i]);} else tsOrig.push(i); });
+    if (!Xtr.length||!tsOrig.length) continue;
+    const xm=meanCol(Xtr),ym=ytr.reduce((a,b)=>a+b,0)/ytr.length;
+    const Xtr_c=centerMatrix(Xtr,xm);
+    const Xts=tsOrig.map(i=>X_raw[i]);
+    const Xts_c=centerMatrix(Xts,xm);
+    const y_c=ytr.map(v=>v-ym);
+    const pls=isMPLS?mplsNIPALS(Xtr_c,y_c,nComp):plsNIPALS(Xtr_c,y_c,nComp);
+    for (let nc=1;nc<=pls.nComp;nc++){
+      const yhat=plsRegress(pls,Xts_c,nc).map(v=>v+ym);
+      tsOrig.forEach((orig,k2)=>sampPreds[orig][nc-1].push(yhat[k2]));
+    }
+  }
+  // Mean std across samples
+  const rep=[];
+  for (let nc=0;nc<nComp;nc++){
+    const stds=[];
+    for (let i=0;i<n;i++){
+      const preds=sampPreds[i][nc];
+      if (preds.length>1){
+        const m=preds.reduce((a,b)=>a+b,0)/preds.length;
+        const sd=Math.sqrt(preds.reduce((s,v)=>s+(v-m)**2,0)/(preds.length-1));
+        stds.push(sd);
+      }
+    }
+    rep.push(stds.length?stds.reduce((a,b)=>a+b,0)/stds.length:NaN);
+  }
+  return rep;
+}
+
+function globalH_Mahalanobis(T,eigenvalues,nComp){
+  const sd=eigenvalues.map(e=>Math.sqrt(e/Math.max(1,T.length-1)));
+  return T.map(row=>{
+    let h=0;
+    for (let k=0;k<Math.min(nComp,row.length);k++) h+=(row[k]/(sd[k]||1))**2;
+    return h/Math.min(nComp,row.length);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// BUILD MODEL
+// ══════════════════════════════════════════════════════════════
+document.getElementById('btn-create-model').addEventListener('click', async()=>{
+  const name=document.getElementById('mm-name').value.trim();
+  if (!name) { toast('Name required','error'); return; }
+  const config={
+    name, comment:document.getElementById('mm-comment').value.trim(),
+    type:document.getElementById('mm-type').value,
+    method:document.getElementById('mm-method').value,
+    parameter:document.getElementById('mm-param').value,
+    trainingSet:document.getElementById('mm-train').value,
+    validationSet:document.getElementById('mm-val').value,
+    cf:parseInt(document.getElementById('mm-cf').value)||16,
+    autoFactors:document.getElementById('mm-autofact').checked,
+    cvType:document.querySelector('input[name="cv"]:checked')?.value||'random',
+    cvK:parseInt(document.getElementById('mm-cvk').value)||5,
+    frStart:parseInt(document.getElementById('mm-fr-start').value)||1,
+    frEnd:parseInt(document.getElementById('mm-fr-end').value)||16,
+    frStep:parseInt(document.getElementById('mm-fr-step').value)||1,
+    wlStep:parseFloat(document.getElementById('mm-wlstep').value)||0.5,
+    pretreatment:document.getElementById('mm-pre').value,
+    derivOn:document.getElementById('mm-d-on').checked,
+    derivOrder:parseInt(document.getElementById('mm-d-order').value)||1,
+    derivGap:parseInt(document.getElementById('mm-d-gap').value)||16,
+    derivSmooth:parseInt(document.getElementById('mm-d-smooth').value)||16,
+    derivSmooth2:parseInt(document.getElementById('mm-d-smooth2').value)||1,
+    useMaxVar:document.getElementById('mm-vsel-max').checked,
+    outlierMethod:document.getElementById('mm-outmethod').value,
+    outlierThresh:parseFloat(document.getElementById('mm-outthresh').value)||3.0
+  };
+  await buildModel(config);
+});
+
+async function buildModel(config){
+  try {
+    setSaving('Preparing data...');
+    // Build set of model-specific outliers (in addition to global spectral outliers)
+    const modelOutliers = new Set();
+    if (config.overwriteId) {
+      const existing = S.models.find(m=>m.id===config.overwriteId);
+      if (existing?.spectralOutliers) existing.spectralOutliers.forEach(n=>modelOutliers.add(n));
+    }
+    const withRef = S.spectra.filter(s=>
+      s.referenceValues?.[config.parameter]!==undefined &&
+      !s.isSpectralOutlier &&
+      !modelOutliers.has(s.sampleNumber)
+    );
+    let training, validation;
+    if (config.trainingSet==='training'){
+      training = withRef.filter(s=>(s.logicalSet||'').toLowerCase()==='training');
+      if (training.length < 5){
+        toast(`No "Training" samples for ${config.parameter} — using all samples with reference`,'info');
+        training = withRef;
+      }
+    } else training = withRef;
+    validation = config.validationSet==='validation' ? withRef.filter(s=>(s.logicalSet||'').toLowerCase()==='validation') : [];
+    if (training.length < 5){ toast(`Not enough samples with reference "${config.parameter}" (got ${training.length})`,'error'); setSaving(''); return; }
+
+    setSaving('Applying pretreatment...');
+    await new Promise(r=>setTimeout(r,10));
+    let mscRef = null;
+    if (config.pretreatment==='msc' || config.pretreatment==='emsc'){
+      const plen=training[0].intensities.length; mscRef=new Array(plen).fill(0);
+      training.forEach(s=>s.intensities.forEach((v,i)=>mscRef[i]+=v));
+      mscRef=mscRef.map(v=>v/training.length);
+    }
+    const {matrix:Xt_raw, wavelengths} = buildMatrix(training,config,mscRef);
+    const {matrix:Xv_raw} = validation.length ? buildMatrix(validation,config,mscRef) : {matrix:[]};
+    const yt=training.map(s=>s.referenceValues[config.parameter]);
+    const yv=validation.map(s=>s.referenceValues[config.parameter]);
+    const yMean=yt.reduce((a,b)=>a+b,0)/yt.length;
+    const xMean=meanCol(Xt_raw);
+    const Xt=centerMatrix(Xt_raw,xMean);
+    const Xv=Xv_raw.length?centerMatrix(Xv_raw,xMean):[];
+    const yt_c=yt.map(v=>v-yMean);
+
+    setSaving(`Running ${config.method.toUpperCase()}...`);
+    await new Promise(r=>setTimeout(r,10));
+    const maxFUse=Math.min(config.frEnd,config.cf,Xt.length-1,Xt[0].length);
+
+    let modelOutput={};
+    if (config.method==='pca'){
+      const pca=pcaNIPALS(Xt,maxFUse);
+      modelOutput.isPCA=true;
+      modelOutput.scores=pca.T; modelOutput.loadings=pca.P;
+      modelOutput.eigenvalues=pca.eigenvalues;
+      modelOutput.xMean=xMean;
+      modelOutput.calibratedF=pca.T[0].length;
+      modelOutput.globalH = globalH_Mahalanobis(pca.T, pca.eigenvalues, pca.T[0].length);
+      modelOutput.tSpNames=training.map(s=>s.sampleNumber);
+      modelOutput.wavelengths=wavelengths;
+    } else {
+      const isMPLS=config.method==='mpls';
+      const pls=isMPLS?mplsNIPALS(Xt,yt_c,maxFUse):plsNIPALS(Xt,yt_c,maxFUse);
+      const rmsepCal=[];
+      for (let nc=1;nc<=pls.nComp;nc++){
+        const yh=plsRegress(pls,Xt,nc);
+        let se=0; for(let i=0;i<yh.length;i++){ const er=(yh[i]+yMean)-yt[i]; se+=er*er; }
+        rmsepCal.push(Math.sqrt(se/yh.length));
+      }
+      setSaving(`Cross-validation (${config.cvType})...`);
+      await new Promise(r=>setTimeout(r,10));
+      const rmsepCross=crossValidatePLS(Xt_raw,yt,config.cvType,config.cvK,pls.nComp,isMPLS);
+      const repeatability=computeRepeatability(Xt_raw,yt,config.cvType,config.cvK,pls.nComp,isMPLS);
+
+      let rmsepVal=new Array(pls.nComp).fill(NaN);
+      let r2=new Array(pls.nComp).fill(NaN);
+      if (Xv.length){
+        for (let nc=1;nc<=pls.nComp;nc++){
+          const yh=plsRegress(pls,Xv,nc).map(v=>v+yMean);
+          let se=0,st=0; const yvm=yv.reduce((a,b)=>a+b,0)/yv.length;
+          for (let i=0;i<yh.length;i++){ const er=yh[i]-yv[i]; se+=er*er; st+=(yv[i]-yvm)**2; }
+          rmsepVal[nc-1]=Math.sqrt(se/yh.length);
+          r2[nc-1]=st>0?1-se/st:0;
+        }
+      }
+
+      let bestF=pls.nComp;
+      if (config.autoFactors){
+        const crit=!isNaN(rmsepCross[0])?rmsepCross:(!isNaN(rmsepVal[0])?rmsepVal:rmsepCal);
+        let best=Infinity;
+        for (let f=0;f<crit.length;f++){
+          const sc=crit[f]*(1+0.04*f);
+          if (!isNaN(sc)&&sc<best){ best=sc; bestF=f+1; }
+        }
+      }
+
+      // Global H for PLS (using scores as PCA-like)
+      const plsEigs = pls.T[0] ? pls.T.reduce((acc,r)=>{r.forEach((v,k)=>{if(acc[k]===undefined)acc[k]=0;acc[k]+=v*v;});return acc;},[]) : [];
+      const globalH = globalH_Mahalanobis(pls.T, plsEigs, Math.min(bestF,pls.nComp));
+
+      modelOutput.isPCA=false;
+      modelOutput.pls={W:pls.W,P:pls.P,Q:pls.Q};
+      modelOutput.xMean=xMean; modelOutput.yMean=yMean;
+      modelOutput.calibratedF=bestF; modelOutput.maxF=pls.nComp;
+      modelOutput.rmsepCal=rmsepCal;
+      modelOutput.rmsepCross=rmsepCross;
+      modelOutput.rmsepVal=rmsepVal;
+      modelOutput.r2=r2;
+      modelOutput.repeatability=repeatability;
+      modelOutput.globalH = globalH;
+      modelOutput.yt=yt;
+      modelOutput.pt=plsRegress(pls,Xt,bestF).map(v=>v+yMean);
+      modelOutput.yv=yv;
+      modelOutput.pv=Xv.length?plsRegress(pls,Xv,bestF).map(v=>v+yMean):[];
+      modelOutput.scores=pls.T;
+      modelOutput.loadings=pls.P;
+      modelOutput.wavelengths=wavelengths;
+      modelOutput.tSpNames=training.map(s=>s.sampleNumber);
+      modelOutput.vSpNames=validation.map(s=>s.sampleNumber);
+    }
+
+    setSaving('Saving model...');
+    await new Promise(r=>setTimeout(r,10));
+
+    // Compute slope/intercept/bias for measured vs predicted (training)
+    if (modelOutput.yt && modelOutput.pt && modelOutput.yt.length){
+      const yt=modelOutput.yt, pt=modelOutput.pt;
+      const n=yt.length;
+      const ymean=yt.reduce((a,b)=>a+b,0)/n;
+      const pmean=pt.reduce((a,b)=>a+b,0)/n;
+      let sxy=0,sxx=0,syy=0;
+      for (let i=0;i<n;i++){
+        sxy += (pt[i]-pmean)*(yt[i]-ymean);
+        sxx += (pt[i]-pmean)**2;
+        syy += (yt[i]-ymean)**2;
+      }
+      modelOutput.slope = sxx>0 ? sxy/sxx : 1;
+      modelOutput.intercept = ymean - modelOutput.slope * pmean;
+      modelOutput.bias = pmean - ymean; // mean(predicted) - mean(measured)
+      modelOutput.r2train = (sxx*syy)>0 ? (sxy*sxy)/(sxx*syy) : 0;
+      // SEP, SECV, SEC
+      let sse_cal=0; for (let i=0;i<n;i++) sse_cal += (pt[i]-yt[i])**2;
+      modelOutput.sec = Math.sqrt(sse_cal/Math.max(1,n-1));
+      modelOutput.r2cal = syy>0 ? 1 - sse_cal/syy : 0;
+    }
+    // For validation
+    if (modelOutput.yv && modelOutput.pv && modelOutput.yv.length){
+      const yv=modelOutput.yv, pv=modelOutput.pv;
+      const n=yv.length;
+      const ymean=yv.reduce((a,b)=>a+b,0)/n;
+      let sse=0,sst=0;
+      for (let i=0;i<n;i++){ sse += (pv[i]-yv[i])**2; sst += (yv[i]-ymean)**2; }
+      modelOutput.r2val = sst>0 ? 1 - sse/sst : 0;
+      modelOutput.sep = Math.sqrt(sse/Math.max(1,n-1));
+    }
+
+    const round6=v=>Math.round(v*1e6)/1e6;
+    const MAX_ROWS=1000;
+    const scoresSample = modelOutput.scores ? modelOutput.scores.slice(0,MAX_ROWS).map(r=>r.slice(0,Math.min(5,r.length)).map(round6)) : null;
+    const loadings = modelOutput.loadings ? modelOutput.loadings.map(r=>r.slice(0,Math.min(5,r.length)).map(round6)) : null;
+    const wl = modelOutput.wavelengths ? modelOutput.wavelengths.map(v=>Math.round(v*100)/100) : null;
+    let wArr=null,pArr=null,qArr=null;
+    if (modelOutput.pls){
+      const keepF=Math.min(modelOutput.pls.W.length, modelOutput.calibratedF+3);
+      wArr=modelOutput.pls.W.slice(0,keepF).map(v=>v.map(round6));
+      pArr=modelOutput.pls.P.slice(0,keepF).map(v=>v.map(round6));
+      qArr=modelOutput.pls.Q.slice(0,keepF).map(round6);
+    }
+    const modelData={
+      slope: modelOutput.slope!=null ? round6(modelOutput.slope) : null,
+      intercept: modelOutput.intercept!=null ? round6(modelOutput.intercept) : null,
+      bias: modelOutput.bias!=null ? round6(modelOutput.bias) : null,
+      r2train: modelOutput.r2train!=null ? round6(modelOutput.r2train) : null,
+      r2cal: modelOutput.r2cal!=null ? round6(modelOutput.r2cal) : null,
+      r2val: modelOutput.r2val!=null ? round6(modelOutput.r2val) : null,
+      sec: modelOutput.sec!=null ? round6(modelOutput.sec) : null,
+      sep: modelOutput.sep!=null ? round6(modelOutput.sep) : null,
+      xMean:modelOutput.xMean?modelOutput.xMean.map(round6):null,
+      yMean:modelOutput.yMean?round6(modelOutput.yMean):null,
+      W:wArr,P:pArr,Q:qArr,
+      wavelengths:wl,
+      scores:scoresSample,
+      loadings:loadings,
+      yt:modelOutput.yt?modelOutput.yt.map(round6):null,
+      pt:modelOutput.pt?modelOutput.pt.map(round6):null,
+      yv:modelOutput.yv?modelOutput.yv.map(round6):null,
+      pv:modelOutput.pv?modelOutput.pv.map(round6):null,
+      tSpNames:modelOutput.tSpNames?modelOutput.tSpNames.slice(0,MAX_ROWS):null,
+      vSpNames:modelOutput.vSpNames,
+      rmsepCalArr:modelOutput.rmsepCal?modelOutput.rmsepCal.map(round6):null,
+      rmsepCrossArr:modelOutput.rmsepCross?modelOutput.rmsepCross.map(v=>isNaN(v)?null:round6(v)):null,
+      rmsepValArr:modelOutput.rmsepVal?modelOutput.rmsepVal.map(v=>isNaN(v)?null:round6(v)):null,
+      r2Arr:modelOutput.r2?modelOutput.r2.map(v=>isNaN(v)?null:round6(v)):null,
+      repeatabilityArr:modelOutput.repeatability?modelOutput.repeatability.map(v=>isNaN(v)?null:round6(v)):null,
+      globalHArr:modelOutput.globalH?modelOutput.globalH.slice(0,MAX_ROWS).map(round6):null
+    };
+    let mdStr=JSON.stringify(modelData);
+    if (mdStr.length>900_000){
+      const st=Math.ceil(modelData.wavelengths.length/600);
+      modelData.wavelengths=modelData.wavelengths.filter((_,i)=>i%st===0);
+      modelData.xMean=modelData.xMean.filter((_,i)=>i%st===0);
+      modelData.loadings=modelData.loadings.filter((_,i)=>i%st===0);
+      if (modelData.W) modelData.W=modelData.W.map(w=>w.filter((_,i)=>i%st===0));
+      if (modelData.P) modelData.P=modelData.P.map(p=>p.filter((_,i)=>i%st===0));
+      mdStr=JSON.stringify(modelData);
+    }
+    if (mdStr.length>1_000_000){ toast('Model too large','error'); setSaving(''); return; }
+
+    const docData={
+      name:config.name, comment:config.comment, method:config.method, type:config.type,
+      parameter:config.parameter, pretreatment:config.pretreatment,
+      derivOn:config.derivOn, derivOrder:config.derivOrder, derivGap:config.derivGap,
+      derivSmooth:config.derivSmooth, derivSmooth2:config.derivSmooth2,
+      useMaxVar:config.useMaxVar, cvType:config.cvType, cvK:config.cvK,
+      factorRange:`${config.frStart}-${config.frEnd}-${config.frStep}`,
+      status:'Calculated',
+      calibratedF:modelOutput.calibratedF, maxF:modelOutput.maxF||modelOutput.calibratedF,
+      slope: modelOutput.slope ?? null,
+      intercept: modelOutput.intercept ?? null,
+      bias: modelOutput.bias ?? null,
+      sec: modelOutput.sec ?? null,
+      sep: modelOutput.sep ?? null,
+      wlStep: config.wlStep || 0.5,
+      rmsepCal:modelOutput.rmsepCal?modelOutput.rmsepCal[modelOutput.calibratedF-1]:null,
+      rmsepCross:modelOutput.rmsepCross&&!isNaN(modelOutput.rmsepCross[modelOutput.calibratedF-1])?modelOutput.rmsepCross[modelOutput.calibratedF-1]:null,
+      rmsepVal:modelOutput.rmsepVal&&!isNaN(modelOutput.rmsepVal[modelOutput.calibratedF-1])?modelOutput.rmsepVal[modelOutput.calibratedF-1]:null,
+      r2:modelOutput.r2&&!isNaN(modelOutput.r2[modelOutput.calibratedF-1])?modelOutput.r2[modelOutput.calibratedF-1]:null,
+      createdAt:serverTimestamp(), createdBy:S.user.uid,
+      modelData:mdStr
+    };
+
+    if (config.overwriteId){
+      // Preserve existing spectralOutliers list during recalc
+      const existing = S.models.find(m=>m.id===config.overwriteId);
+      if (existing?.spectralOutliers) docData.spectralOutliers = existing.spectralOutliers;
+      await setDoc(doc(db,'projects',S.project.id,'models',config.overwriteId),docData);
+      S.models = S.models.map(mm=>mm.id===config.overwriteId?{id:config.overwriteId,...docData}:mm);
+      S.selModel = S.models.find(mm=>mm.id===config.overwriteId);
+    } else {
+      const ref=await addDoc(collection(db,'projects',S.project.id,'models'),docData);
+      try { await updateDoc(doc(db,'projects',S.project.id),{numberOfModels:(S.project.numberOfModels||0)+1,lastModifiedAt:serverTimestamp(),lastModifiedBy:S.user.uid}); } catch(e){console.warn(e);}
+      S.models.push({id:ref.id,...docData});
+      S.selModel=S.models[S.models.length-1];
+    }
+    renderModels();
+    closeNewModel();
+    viewModelDetails(S.selModel.id);
+    setSaving('');
+    toast(`Model "${config.name}" built (${modelOutput.calibratedF} factors)`,'success');
+  } catch(e){ setSaving(''); console.error(e); toast('Error: '+e.message,'error'); }
+}
+
+function setSaving(msg){document.getElementById('saving-ind').textContent=msg;}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER DETAILS (6 charts)
+// ══════════════════════════════════════════════════════════════
+function renderDetails(m){
+  document.getElementById('details-empty').style.display='none';
+  document.getElementById('details-content').style.display='flex';
+  document.getElementById('dt-name').textContent=m.name;
+  document.getElementById('dt-method').textContent=(m.method||'').toUpperCase();
+  document.getElementById('dt-param').textContent=m.parameter||'—';
+  document.getElementById('dt-fact').textContent=m.calibratedF||'—';
+  document.getElementById('dt-rcal').textContent=m.rmsepCal!=null?Number(m.rmsepCal).toFixed(4):'—';
+  document.getElementById('dt-rcross').textContent=m.rmsepCross!=null?Number(m.rmsepCross).toFixed(4):'—';
+  document.getElementById('dt-r2').textContent=m.r2!=null?Number(m.r2).toFixed(4):'—';
+
+  let md={};
+  try { md=typeof m.modelData==='string'?JSON.parse(m.modelData):(m.modelData||{}); } catch(e){console.error('modelData parse',e);}
+  Object.values(S.charts).forEach(c=>c?.destroy?.());
+  S.charts={};
+
+  drawScoresChart(md, 0, 1);
+  drawResidualsChart(md);
+  drawLoadingsChart(md);
+  drawPLSFactorsChart(md, m);
+  drawMVPChart(md);
+  drawGlobalHChart(md, m);
+  drawRepeatabilityChart(md);
+
+  // Score axis selectors with sessionStorage persistence
+  const savedSx = sessionStorage.getItem('dcc_model_'+m.id+'_sx');
+  const savedSy = sessionStorage.getItem('dcc_model_'+m.id+'_sy');
+  if (savedSx) document.getElementById('sc-x').value = savedSx;
+  if (savedSy) document.getElementById('sc-y').value = savedSy;
+  drawScoresChart(md, +document.getElementById('sc-x').value-1, +document.getElementById('sc-y').value-1);
+
+  document.getElementById('sc-x').onchange = ()=>{
+    sessionStorage.setItem('dcc_model_'+m.id+'_sx', document.getElementById('sc-x').value);
+    drawScoresChart(md, +document.getElementById('sc-x').value-1, +document.getElementById('sc-y').value-1);
+  };
+  document.getElementById('sc-y').onchange = ()=>{
+    sessionStorage.setItem('dcc_model_'+m.id+'_sy', document.getElementById('sc-y').value);
+    drawScoresChart(md, +document.getElementById('sc-x').value-1, +document.getElementById('sc-y').value-1);
+  };
+
+  // MvP factor selector
+  const mvpSel = document.getElementById('mvp-factor');
+  if (mvpSel) {
+    const maxF = m.maxF || m.calibratedF || 16;
+    mvpSel.innerHTML = '';
+    for (let f=1; f<=maxF; f++){
+      const opt = document.createElement('option');
+      opt.value = f; opt.textContent = '#'+f;
+      if (f===m.calibratedF) opt.selected = true;
+      mvpSel.appendChild(opt);
+    }
+    const savedMvpF = sessionStorage.getItem('dcc_model_'+m.id+'_mvpf');
+    if (savedMvpF) mvpSel.value = savedMvpF;
+    mvpSel.onchange = ()=>{
+      sessionStorage.setItem('dcc_model_'+m.id+'_mvpf', mvpSel.value);
+      drawMVPChart(md, +mvpSel.value);
+    };
+  }
+}
+
+function drawScoresChart(md, xi, yi){
+  if (!md.scores || !md.scores.length) return;
+  const nT = md.tSpNames?.length || md.scores.length;
+  const outliers = new Set(S.selModel?.spectralOutliers || []);
+  const trainPts = md.scores.slice(0, nT).map((r,i)=>({
+    x:r[xi]||0, y:r[yi]||0, _i:i,
+    _lbl:md.tSpNames?.[i]||'',
+    _isOutlier: outliers.has(md.tSpNames?.[i])
+  }));
+  const datasets = [{
+    label:'Training',
+    data:trainPts,
+    backgroundColor:(ctx)=>ctx.raw?._isOutlier?'rgba(192,57,43,0.9)':'rgba(30,95,168,0.7)',
+    pointRadius:(ctx)=>ctx.raw?._isOutlier?7:3,
+    pointStyle:(ctx)=>ctx.raw?._isOutlier?'crossRot':'circle',
+    borderColor:(ctx)=>ctx.raw?._isOutlier?'#c0392b':'rgba(30,95,168,0.7)',
+    borderWidth:(ctx)=>ctx.raw?._isOutlier?2:0
+  }];
+  if (S.charts.scores) S.charts.scores.destroy();
+  S.charts.scores = new Chart(document.getElementById('c-scores'), {
+    type:'scatter',
+    data:{datasets},
+    options:{animation:false,responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw._lbl + (c.raw._isOutlier?' (outlier)':'')}}},
+      scales:{x:{title:{display:true,text:`Scores on #${xi+1}`}},y:{title:{display:true,text:`Scores on #${yi+1}`}}}
+    }
+  });
+}
+
+function drawResidualsChart(md){
+  if (!md.yt || !md.pt) return;
+  // Training residuals (blue)
+  const trainRes = md.yt.map((y,i)=>y - (md.pt[i]||0));
+  // Validation residuals (green) if available
+  const valRes = (md.yv && md.pv && md.yv.length) ? md.yv.map((y,i)=>y - (md.pv[i]||0)) : [];
+
+  const nBins = 20;
+  const allRes = [...trainRes, ...valRes];
+  const mn = Math.min(...allRes), mx = Math.max(...allRes);
+  const bin = (mx-mn)/nBins || 1;
+  const labels = [];
+  for (let i=0;i<nBins;i++) labels.push((mn+i*bin).toFixed(2));
+  const tBins = new Array(nBins).fill(0);
+  const vBins = new Array(nBins).fill(0);
+  trainRes.forEach(r=>{const i=Math.min(nBins-1,Math.max(0,Math.floor((r-mn)/bin)));tBins[i]++;});
+  valRes.forEach(r=>{const i=Math.min(nBins-1,Math.max(0,Math.floor((r-mn)/bin)));vBins[i]++;});
+
+  const datasets = [{label:'Training',data:tBins,backgroundColor:'rgba(30,95,168,0.85)',stack:'s'}];
+  if (valRes.length) datasets.push({label:'Validation',data:vBins,backgroundColor:'rgba(46,125,82,0.85)',stack:'s'});
+
+  if (S.charts.residuals) S.charts.residuals.destroy();
+  S.charts.residuals = new Chart(document.getElementById('c-residuals'), {
+    type:'bar',
+    data:{labels,datasets},
+    options:{animation:false,responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:valRes.length>0,position:'top',labels:{boxWidth:10,font:{size:10}}}},
+      scales:{x:{title:{display:true,text:'Actual − Predicted'},stacked:true},y:{title:{display:true,text:'Count'},stacked:true}}
+    }
+  });
+}
+
+function drawLoadingsChart(md){
+  if (!md.loadings || !md.loadings.length) return;
+  const wl = md.wavelengths || md.loadings.map((_,i)=>i);
+  const l1 = md.loadings.map(r=>r[0]||0);
+  if (S.charts.loadings) S.charts.loadings.destroy();
+  S.charts.loadings = new Chart(document.getElementById('c-loadings'), {
+    type:'line',
+    data:{labels:wl,datasets:[{label:'Loading #1',data:l1,borderColor:'#1a1a1a',borderWidth:1,pointRadius:0,fill:false}]},
+    options:{animation:false,responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{title:{display:true,text:'Wavelength (nm)',color:'#8a909e',font:{size:10}},ticks:{maxTicksLimit:6,color:'#8a909e',font:{size:9},callback:function(v,i){const lbl=wl[i]; return lbl!=null?Number(lbl).toFixed(0):'';}}},
+        y:{title:{display:true,text:'Loadings on #1'}}
+      }
+    }
+  });
+}
+
+function drawPLSFactorsChart(md, m){
+  if (!md.rmsepCalArr || !md.rmsepCalArr.length) return;
+  // Use cross if available for main line
+  const crossArr = md.rmsepCrossArr && md.rmsepCrossArr.some(v=>v!=null) ? md.rmsepCrossArr : null;
+  const labels = md.rmsepCalArr.map((_,i)=>i+1);
+  const datasets = [];
+  if (crossArr) datasets.push({label:'RMSEP_cv',data:crossArr,borderColor:'#1a1a1a',backgroundColor:'#1a1a1a',pointRadius:3,fill:false,showLine:false,borderWidth:1});
+  else datasets.push({label:'RMSEP_cal',data:md.rmsepCalArr,borderColor:'#1a1a1a',backgroundColor:'#1a1a1a',pointRadius:3,fill:false,showLine:false,borderWidth:1});
+  if (S.charts.plsfactors) S.charts.plsfactors.destroy();
+  S.charts.plsfactors = new Chart(document.getElementById('c-plsfactors'), {
+    type:'line',
+    data:{labels,datasets},
+    options:{animation:false,responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{title:{display:true,text:'Factor'}},y:{title:{display:true,text:'RMSEP_cv'}}}
+    }
+  });
+}
+
+function drawMVPChart(md, useFactor){
+  if (!md.yt || !md.pt) return;
+  // Si useFactor diffère du calibratedF, recalcule pt/pv avec useFactor composantes
+  let yt = md.yt, pt = md.pt, yv = md.yv, pv = md.pv;
+  if (useFactor && useFactor !== S.selModel?.calibratedF && md.W && md.W.length){
+    // Recompute predictions on training/validation data using stored W/P/Q with useFactor components
+    // Note: we don't have raw X here, so we approximate using stored scores (not perfectly accurate)
+    // Best effort: skip and use stored pt/pv (calibratedF). Display warning.
+    // Future: store all factor predictions or recompute from xMean
+  }
+  const outliers = new Set(S.selModel?.spectralOutliers || []);
+  const tPts = md.yt.map((y,i)=>({
+    x:md.pt[i]||0, y, _i:i, _lbl:md.tSpNames?.[i]||'',
+    _isOutlier: outliers.has(md.tSpNames?.[i])
+  }));
+  const vPts = (md.yv && md.pv) ? md.yv.map((y,i)=>({
+    x:md.pv[i]||0, y, _i:(md.yt?.length||0)+i, _lbl:md.vSpNames?.[i]||'',
+    _isOutlier: outliers.has(md.vSpNames?.[i])
+  })) : [];
+  const all=[...md.yt,...(md.yv||[]),...md.pt,...(md.pv||[])];
+  const mn=Math.min(...all), mx=Math.max(...all);
+  const line=[{x:mn,y:mn},{x:mx,y:mx}];
+  if (S.charts.mvp) S.charts.mvp.destroy();
+  S.charts.mvp = new Chart(document.getElementById('c-mvp'), {
+    type:'scatter',
+    data:{datasets:[
+      {label:'Training',data:tPts,
+        backgroundColor:(ctx)=>ctx.raw?._isOutlier?'rgba(192,57,43,0.9)':'rgba(30,95,168,0.8)',
+        pointRadius:(ctx)=>ctx.raw?._isOutlier?7:3,
+        pointStyle:(ctx)=>ctx.raw?._isOutlier?'crossRot':'circle',
+        borderColor:(ctx)=>ctx.raw?._isOutlier?'#c0392b':'rgba(30,95,168,0.8)',
+        borderWidth:(ctx)=>ctx.raw?._isOutlier?2:0},
+      {label:'Validation',data:vPts,
+        backgroundColor:(ctx)=>ctx.raw?._isOutlier?'rgba(192,57,43,0.9)':'rgba(46,125,82,0.8)',
+        pointRadius:(ctx)=>ctx.raw?._isOutlier?7:3,
+        pointStyle:(ctx)=>ctx.raw?._isOutlier?'crossRot':'circle',
+        borderColor:(ctx)=>ctx.raw?._isOutlier?'#c0392b':'rgba(46,125,82,0.8)',
+        borderWidth:(ctx)=>ctx.raw?._isOutlier?2:0},
+      {label:'y=x',type:'line',data:line,borderColor:'rgba(192,57,43,0.5)',borderDash:[5,3],borderWidth:1,pointRadius:0,fill:false,showLine:true}
+    ]},
+    options:{animation:false,responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.raw._lbl||''}}},
+      scales:{x:{title:{display:true,text:'Predicted'}},y:{title:{display:true,text:'Measured'}}}
+    }
+  });
+}
+
+function drawGlobalHChart(md, m){
+  if (!md.globalHArr || !md.globalHArr.length) return;
+  const trainN = md.tSpNames?.length || md.globalHArr.length;
+  const outliers = new Set(S.selModel?.spectralOutliers || []);
+  const trainPts = md.globalHArr.slice(0, trainN).map((v,i)=>({
+    x:i, y:v, _i:i, _lbl:md.tSpNames?.[i]||'Sample '+i,
+    _isOutlier: outliers.has(md.tSpNames?.[i])
+  }));
+  if (S.charts.globalh) S.charts.globalh.destroy();
+  S.charts.globalh = new Chart(document.getElementById('c-globalh'), {
+    type:'scatter',
+    data:{datasets:[{
+      label:'Training',data:trainPts,
+      backgroundColor:(ctx)=>ctx.raw?._isOutlier?'rgba(192,57,43,0.9)':'rgba(30,95,168,0.7)',
+      pointRadius:(ctx)=>ctx.raw?._isOutlier?6:2,
+      pointStyle:(ctx)=>ctx.raw?._isOutlier?'crossRot':'circle',
+      borderColor:(ctx)=>ctx.raw?._isOutlier?'#c0392b':'rgba(30,95,168,0.7)',
+      borderWidth:(ctx)=>ctx.raw?._isOutlier?2:0
+    }]},
+    options:{animation:false,responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw._lbl + (c.raw._isOutlier?' (outlier)':'')}}},
+      scales:{x:{title:{display:true,text:'Samples'}},y:{title:{display:true,text:'Global H'}}}
+    }
+  });
+}
+
+function drawRepeatabilityChart(md){
+  if (!md.repeatabilityArr || !md.repeatabilityArr.length) return;
+  const labels = md.repeatabilityArr.map((_,i)=>i+1);
+  const datasets = [{label:'Repeatability',data:md.repeatabilityArr,borderColor:'#1a1a1a',backgroundColor:'#1a1a1a',pointRadius:3,fill:false,showLine:false,borderWidth:1}];
+  if (S.charts.repeatability) S.charts.repeatability.destroy();
+  S.charts.repeatability = new Chart(document.getElementById('c-repeatability'), {
+    type:'line',
+    data:{labels,datasets},
+    options:{animation:false,responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{title:{display:true,text:'Factor'}},y:{title:{display:true,text:'Repeatability (s)'}}}
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// FULLSCREEN CHART MODE (Spectra-like)
+// ══════════════════════════════════════════════════════════════
+window.openFullscreen = function(chartType){
+  if (!S.selModel) return;
+  const md = typeof S.selModel.modelData==='string'?JSON.parse(S.selModel.modelData):S.selModel.modelData;
+  S.fsData = {type:chartType, md, model:S.selModel};
+  // Charger outliers existants depuis le modèle
+  S.fsSelected = new Set();
+  const existing = S.selModel.spectralOutliers || [];
+  if (existing.length){
+    const names = chartType==='scores' || chartType==='globalh'
+      ? (md.tSpNames||[])
+      : [...(md.tSpNames||[]),...(md.vSpNames||[])];
+    existing.forEach(name=>{
+      const idx = names.indexOf(name);
+      if (idx>=0) S.fsSelected.add(idx);
+    });
+  }
+  document.getElementById('fs-overlay').classList.add('on');
+  const titles = {scores:'Scores (fullscreen)', mvp:'Measured vs Predicted (fullscreen)', globalh:'Global H (fullscreen)'};
+  document.getElementById('fs-title').textContent = titles[chartType] || chartType;
+  setTimeout(()=>renderFullscreen(), 50);
+};
+document.getElementById('fs-close').addEventListener('click',()=>{
+  document.getElementById('fs-overlay').classList.remove('on');
+  if (S.fsChart) { S.fsChart.destroy(); S.fsChart=null; }
+});
+
+function renderFullscreen(){
+  if (!S.fsData) return;
+  const {type, md, model} = S.fsData;
+  const canvas = document.getElementById('fs-canvas');
+  const wrap = document.getElementById('fs-canvas-wrap');
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  const sel = document.getElementById('fs-sel-cv');
+  sel.width = wrap.clientWidth;
+  sel.height = wrap.clientHeight;
+
+  if (S.fsChart) S.fsChart.destroy();
+  if (type==='scores'){
+    const nT = md.tSpNames?.length || md.scores.length;
+    const pts = md.scores.slice(0,nT).map((r,i)=>({x:r[0]||0, y:r[1]||0, _i:i, _lbl:md.tSpNames?.[i]||''}));
+    S.fsChart = new Chart(canvas, {
+      type:'scatter',
+      data:{datasets:[{
+        label:'Scores',
+        data:pts,
+        backgroundColor:(ctx)=>S.fsSelected.has(ctx.raw?._i)?'rgba(192,57,43,0.9)':'rgba(30,95,168,0.7)',
+        pointRadius:(ctx)=>S.fsSelected.has(ctx.raw?._i)?7:3,
+        pointStyle:(ctx)=>S.fsSelected.has(ctx.raw?._i)?'crossRot':'circle',
+        borderColor:(ctx)=>S.fsSelected.has(ctx.raw?._i)?'#c0392b':'rgba(30,95,168,0.7)',
+        borderWidth:(ctx)=>S.fsSelected.has(ctx.raw?._i)?2:0
+      }]},
+      options:{animation:false,responsive:false,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw._lbl||''}}},
+        scales:{x:{title:{display:true,text:'Scores on #1'}},y:{title:{display:true,text:'Scores on #2'}}}
+      }
+    });
+  } else if (type==='globalh'){
+    if (!md.globalHArr) { toast('No Global H data','warn'); return; }
+    const nT = md.tSpNames?.length || md.globalHArr.length;
+    const pts = md.globalHArr.slice(0,nT).map((v,i)=>({x:i, y:v, _i:i, _lbl:md.tSpNames?.[i]||'Sample '+i}));
+    S.fsChart = new Chart(canvas, {
+      type:'scatter',
+      data:{datasets:[{
+        label:'Training',
+        data:pts,
+        backgroundColor:(ctx)=>S.fsSelected.has(ctx.raw?._i)?'rgba(255,140,0,0.9)':'rgba(30,95,168,0.7)',
+        pointRadius:(ctx)=>S.fsSelected.has(ctx.raw?._i)?5:3,
+        pointStyle:(ctx)=>S.fsSelected.has(ctx.raw?._i)?'crossRot':'circle'
+      }]},
+      options:{animation:false,responsive:false,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw._lbl||''}}},
+        scales:{x:{title:{display:true,text:'Samples'}},y:{title:{display:true,text:'Global H'}}}
+      }
+    });
+  } else if (type==='mvp'){
+    const tPts = md.yt.map((y,i)=>({x:md.pt[i]||0, y, _i:i, _type:'t', _lbl:md.tSpNames?.[i]||''}));
+    const vPts = (md.yv && md.pv) ? md.yv.map((y,i)=>({x:md.pv[i]||0, y, _i:i+(md.yt?.length||0), _type:'v', _lbl:md.vSpNames?.[i]||''})) : [];
+    const all=[...md.yt,...(md.yv||[]),...md.pt,...(md.pv||[])];
+    const mn=Math.min(...all), mx=Math.max(...all);
+    S.fsChart = new Chart(canvas, {
+      type:'scatter',
+      data:{datasets:[
+        {label:'Training',data:tPts,
+          backgroundColor:(ctx)=>S.fsSelected.has(ctx.raw?._i)?'rgba(192,57,43,0.9)':'rgba(30,95,168,0.8)',
+          pointRadius:(ctx)=>S.fsSelected.has(ctx.raw?._i)?7:3,
+          pointStyle:(ctx)=>S.fsSelected.has(ctx.raw?._i)?'crossRot':'circle',
+          borderColor:(ctx)=>S.fsSelected.has(ctx.raw?._i)?'#c0392b':'rgba(30,95,168,0.8)',
+          borderWidth:(ctx)=>S.fsSelected.has(ctx.raw?._i)?2:0},
+        {label:'Validation',data:vPts,
+          backgroundColor:(ctx)=>S.fsSelected.has(ctx.raw?._i)?'rgba(192,57,43,0.9)':'rgba(46,125,82,0.8)',
+          pointRadius:(ctx)=>S.fsSelected.has(ctx.raw?._i)?7:3,
+          pointStyle:(ctx)=>S.fsSelected.has(ctx.raw?._i)?'crossRot':'circle',
+          borderColor:(ctx)=>S.fsSelected.has(ctx.raw?._i)?'#c0392b':'rgba(46,125,82,0.8)',
+          borderWidth:(ctx)=>S.fsSelected.has(ctx.raw?._i)?2:0},
+        {label:'y=x',type:'line',data:[{x:mn,y:mn},{x:mx,y:mx}],borderColor:'rgba(192,57,43,0.5)',borderDash:[5,3],borderWidth:1,pointRadius:0,fill:false,showLine:true}
+      ]},
+      options:{animation:false,responsive:false,maintainAspectRatio:false,
+        plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.raw._lbl||''}}},
+        scales:{x:{title:{display:true,text:'Predicted'}},y:{title:{display:true,text:'Measured'}}}
+      }
+    });
+  }
+  renderOutlierList();
+}
+
+function renderOutlierList(){
+  const cont = document.getElementById('fs-outlier-list');
+  document.getElementById('fs-out-count').textContent = S.fsSelected.size;
+  if (!S.fsSelected.size) { cont.innerHTML = '<div style="padding:8px;color:var(--text3);font-size:11px;">No outliers marked</div>'; return; }
+  const md = S.fsData.md;
+  const names = S.fsData.type==='scores' ? (md.tSpNames||[]) :
+                [...(md.tSpNames||[]),...(md.vSpNames||[])];
+  cont.innerHTML = [...S.fsSelected].sort((a,b)=>a-b).map(i=>`
+    <div class="oi">
+      <span>${names[i]||'Sample '+i}</span>
+      <button data-unmark="${i}">×</button>
+    </div>
+  `).join('');
+  cont.querySelectorAll('[data-unmark]').forEach(b=>b.addEventListener('click',()=>{
+    S.fsSelected.delete(+b.dataset.unmark);
+    S.fsChart?.update('none');
+    renderOutlierList();
+  }));
+}
+
+// Fullscreen interactions: zoom, rectangle select, context menu
+const fsSel = document.getElementById('fs-sel-cv');
+const fsCtx = fsSel?.getContext('2d');
+let fsDragging=false, fsDStart=null;
+
+function fsResize(){
+  const w = document.getElementById('fs-canvas-wrap');
+  if (fsSel) { fsSel.width=w.clientWidth; fsSel.height=w.clientHeight; }
+  const c = document.getElementById('fs-canvas');
+  if (c) { c.width=w.clientWidth; c.height=w.clientHeight; }
+}
+window.addEventListener('resize',()=>{if(S.fsChart){fsResize();renderFullscreen();}});
+
+fsSel?.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  const r = fsSel.getBoundingClientRect();
+  fsDragging = true;
+  fsDStart = {x:e.clientX-r.left, y:e.clientY-r.top};
+  e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (!fsDragging) return;
+  const r = fsSel.getBoundingClientRect();
+  const cur = {x:e.clientX-r.left, y:e.clientY-r.top};
+  fsCtx.clearRect(0,0,fsSel.width,fsSel.height);
+  const x=Math.min(fsDStart.x,cur.x), y=Math.min(fsDStart.y,cur.y);
+  const w=Math.abs(cur.x-fsDStart.x), h=Math.abs(cur.y-fsDStart.y);
+  fsCtx.fillStyle='rgba(30,95,168,0.08)'; fsCtx.strokeStyle='rgba(30,95,168,0.5)'; fsCtx.lineWidth=1;
+  fsCtx.fillRect(x,y,w,h); fsCtx.strokeRect(x,y,w,h);
+});
+document.addEventListener('mouseup', e => {
+  if (!fsDragging) return;
+  fsDragging = false;
+  fsCtx.clearRect(0,0,fsSel.width,fsSel.height);
+  if (!S.fsChart) return;
+  const r = fsSel.getBoundingClientRect();
+  const cur = {x:e.clientX-r.left, y:e.clientY-r.top};
+  const x0=Math.min(fsDStart.x,cur.x), x1=Math.max(fsDStart.x,cur.x);
+  const y0=Math.min(fsDStart.y,cur.y), y1=Math.max(fsDStart.y,cur.y);
+  if (x1-x0<5 && y1-y0<5) return;
+  const xs=S.fsChart.scales.x, ys=S.fsChart.scales.y;
+  if (!xs||!ys) return;
+  const xFrom=xs.getValueForPixel(x0), xTo=xs.getValueForPixel(x1);
+  const yFrom=ys.getValueForPixel(y1), yTo=ys.getValueForPixel(y0);
+  if (!e.ctrlKey && !e.metaKey) S.fsSelected.clear();
+  // Select points in range
+  S.fsChart.data.datasets.forEach(ds=>{
+    if (!ds.data || !ds.data.length || ds.data[0]._i===undefined) return;
+    ds.data.forEach(pt=>{
+      if (pt.x>=xFrom && pt.x<=xTo && pt.y>=yFrom && pt.y<=yTo) S.fsSelected.add(pt._i);
+    });
+  });
+  S.fsChart.update('none');
+  renderOutlierList();
+  if (S.fsSelected.size) toast(`${S.fsSelected.size} selected`,'info');
+});
+
+// Right-click
+fsSel?.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  const m = document.getElementById('ctx-fs');
+  m.style.left = e.clientX+'px';
+  m.style.top = e.clientY+'px';
+  m.classList.add('on');
+});
+document.addEventListener('mousedown', (e)=>{
+  const m=document.getElementById('ctx-fs');
+  if (m && !m.contains(e.target)) m.classList.remove('on');
+});
+document.getElementById('ctx-fs')?.addEventListener('mousedown', e=>e.stopPropagation());
+
+document.getElementById('ctx-fs-mark').addEventListener('click',()=>{
+  // Mark selected as outliers -> update original spectra
+  if (!S.fsSelected.size) { toast('No selection','warn'); return; }
+  const md = S.fsData.md;
+  const names = S.fsData.type==='scores' ? (md.tSpNames||[]) :
+                [...(md.tSpNames||[]),...(md.vSpNames||[])];
+  const toMark = [...S.fsSelected].map(i=>names[i]).filter(n=>n);
+  toMark.forEach(name=>{
+    const sp = S.spectra.find(s=>s.sampleNumber===name);
+    if (sp) sp.isSpectralOutlier = true;
+  });
+  toast(`${toMark.length} marked as outliers — click Recalculate to rebuild`,'success');
+  document.getElementById('ctx-fs').classList.remove('on');
+});
+document.getElementById('ctx-fs-unmark').addEventListener('click',()=>{
+  if (!S.fsSelected.size) { toast('No selection','warn'); return; }
+  const md = S.fsData.md;
+  const names = S.fsData.type==='scores' ? (md.tSpNames||[]) :
+                [...(md.tSpNames||[]),...(md.vSpNames||[])];
+  [...S.fsSelected].forEach(i=>{
+    const name=names[i]; if(!name) return;
+    const sp=S.spectra.find(s=>s.sampleNumber===name);
+    if (sp) sp.isSpectralOutlier = false;
+  });
+  toast('Unmarked','info');
+  S.fsSelected.clear();
+  renderOutlierList();
+  S.fsChart?.update('none');
+  document.getElementById('ctx-fs').classList.remove('on');
+});
+document.getElementById('ctx-fs-none').addEventListener('click',()=>{
+  S.fsSelected.clear();
+  renderOutlierList();
+  S.fsChart?.update('none');
+  document.getElementById('ctx-fs').classList.remove('on');
+});
+document.getElementById('ctx-fs-reset').addEventListener('click',()=>{
+  if (!S.fsChart) return;
+  delete S.fsChart.options.scales.x.min; delete S.fsChart.options.scales.x.max;
+  delete S.fsChart.options.scales.y.min; delete S.fsChart.options.scales.y.max;
+  S.fsChart.update('none');
+  document.getElementById('ctx-fs').classList.remove('on');
+});
+
+// Zoom buttons
+function fsZoom(f){
+  if (!S.fsChart?.scales) return;
+  const xs=S.fsChart.scales.x, ys=S.fsChart.scales.y;
+  const xm=(xs.max+xs.min)/2, ym=(ys.max+ys.min)/2;
+  const xh=(xs.max-xs.min)/2/f, yh=(ys.max-ys.min)/2/f;
+  S.fsChart.options.scales.x.min=xm-xh; S.fsChart.options.scales.x.max=xm+xh;
+  S.fsChart.options.scales.y.min=ym-yh; S.fsChart.options.scales.y.max=ym+yh;
+  S.fsChart.update('none');
+}
+document.getElementById('fs-zoom-in').addEventListener('click',()=>fsZoom(1.3));
+document.getElementById('fs-zoom-out').addEventListener('click',()=>fsZoom(0.77));
+document.getElementById('fs-zoom-reset').addEventListener('click',()=>{
+  if (!S.fsChart) return;
+  delete S.fsChart.options.scales.x.min; delete S.fsChart.options.scales.x.max;
+  delete S.fsChart.options.scales.y.min; delete S.fsChart.options.scales.y.max;
+  S.fsChart.update('none');
+});
+
+// Wheel zoom
+fsSel?.addEventListener('wheel', e=>{
+  e.preventDefault();
+  if (!S.fsChart?.scales?.x) return;
+  const f = e.deltaY>0 ? 0.87 : 1.15;
+  const rect = fsSel.getBoundingClientRect();
+  const xVal = S.fsChart.scales.x.getValueForPixel(e.clientX-rect.left);
+  const yVal = S.fsChart.scales.y.getValueForPixel(e.clientY-rect.top);
+  const xR = (S.fsChart.scales.x.max-S.fsChart.scales.x.min)*f;
+  const yR = (S.fsChart.scales.y.max-S.fsChart.scales.y.min)*f;
+  S.fsChart.options.scales.x.min=xVal-xR/2; S.fsChart.options.scales.x.max=xVal+xR/2;
+  S.fsChart.options.scales.y.min=yVal-yR/2; S.fsChart.options.scales.y.max=yVal+yR/2;
+  S.fsChart.update('none');
+},{passive:false});
+
+// Save outliers (without recalc) from fullscreen
+document.getElementById('fs-save').addEventListener('click', async()=>{
+  if (!S.selModel) return;
+  const savingEl = document.getElementById('fs-saving');
+  savingEl.textContent = 'Saving outliers...';
+  // Gather outlier sample names
+  const md = S.fsData.md;
+  const names = S.fsData.type==='scores' || S.fsData.type==='globalh'
+    ? (md.tSpNames||[])
+    : [...(md.tSpNames||[]),...(md.vSpNames||[])];
+  const outlierNames = [...S.fsSelected].map(i=>names[i]).filter(n=>n);
+  // Combine with previously stored outliers
+  const existing = new Set(S.selModel.spectralOutliers || []);
+  outlierNames.forEach(n=>existing.add(n));
+  const finalList = [...existing];
+  try {
+    await updateDoc(doc(db,'projects',S.project.id,'models',S.selModel.id), {
+      spectralOutliers: finalList,
+      lastOutlierUpdate: serverTimestamp()
+    });
+    S.selModel.spectralOutliers = finalList;
+    const idx = S.models.findIndex(m=>m.id===S.selModel.id);
+    if (idx>=0) S.models[idx].spectralOutliers = finalList;
+    savingEl.textContent = 'Saved ✓';
+    toast(`${finalList.length} outliers saved on model`, 'success');
+    setTimeout(()=>savingEl.textContent='', 1500);
+    // Refresh the chart with outlier markers
+    renderFullscreen();
+  } catch(e) {
+    console.error(e);
+    savingEl.textContent = '';
+    toast('Save error: '+e.message, 'error');
+  }
+});
+
+// Recalculate from fullscreen
+document.getElementById('fs-recalc').addEventListener('click', async()=>{
+  if (!S.selModel) return;
+  const savingEl = document.getElementById('fs-saving');
+  savingEl.textContent = 'Saving outliers + recalculating...';
+  // 1. Save outliers to Firestore
+  try {
+    const pid = S.project.id;
+    for (let i=0;i<S.spectra.length;i+=20){
+      await Promise.all(S.spectra.slice(i,i+20).map(s=>
+        updateDoc(doc(db,'projects',pid,'sampleSets',S.ssId,'spectra',s.sampleNumber.replace(/[./\s#[\]*?]/g,'_')),
+          {isSpectralOutlier:s.isSpectralOutlier||false}).catch(()=>{})
+      ));
+    }
+  } catch(e){ console.warn(e); }
+  // 2. Recalculate
+  const config = extractConfigFromModel(S.selModel);
+  config.overwriteId = S.selModel.id;
+  savingEl.textContent = 'Recalculating...';
+  document.getElementById('fs-overlay').classList.remove('on');
+  if (S.fsChart) { S.fsChart.destroy(); S.fsChart=null; }
+  await buildModel(config);
+  savingEl.textContent = '';
+});
+
+// ══════════════════════════════════════════════════════════════
+// PREDICT
+// ══════════════════════════════════════════════════════════════
+document.getElementById('btn-predict').addEventListener('click', async()=>{
+  const modelId=document.getElementById('pred-model').value;
+  const f=document.getElementById('pred-file').files[0];
+  if (!modelId||!f) { toast('Select model and file','warn'); return; }
+  const m=S.models.find(mm=>mm.id===modelId); if (!m) return;
+  const text=await f.text();
+  const spectra=parseDX(text);
+  if (!spectra.length) { toast('No spectra','error'); return; }
+  const md=typeof m.modelData==='string'?JSON.parse(m.modelData):m.modelData;
+  const config={pretreatment:m.pretreatment,derivOn:m.derivOn,derivOrder:m.derivOrder,derivGap:m.derivGap,derivSmooth:m.derivSmooth,derivSmooth2:m.derivSmooth2};
+  const results=spectra.map(s=>{
+    let x=applyPreprocessing(s.intensities,config,null);
+    if (x.length>md.xMean.length) x=x.slice(0,md.xMean.length);
+    while (x.length<md.xMean.length) x.push(0);
+    const xc=x.map((v,i)=>v-(md.xMean[i]||0));
+    const nc=Math.min(m.calibratedF,md.W.length);
+    let yHat=0; const xr=[...xc];
+    for (let c=0;c<nc;c++){
+      const t=dotVec(xr,md.W[c]);
+      yHat+=t*md.Q[c];
+      for (let i=0;i<xr.length;i++) xr[i]-=t*md.P[c][i];
+    }
+    return {sample:s.sampleNumber, predicted:yHat+md.yMean};
+  });
+  const tbl=document.querySelector('#pred-tbl tbody');
+  tbl.innerHTML=results.map(r=>`<tr><td class="nm">${r.sample}</td><td style="text-align:right;">${r.predicted.toFixed(4)}</td></tr>`).join('');
+  document.getElementById('pred-results').style.display='block';
+  toast(`${results.length} predictions`,'success');
+});
+
+function parseDX(text){
+  const spectra=[];
+  const blocks=text.split(/\$\$END\s*\n/).filter(b=>b.trim());
+  for (const block of blocks){
+    const lines=block.split(/\r?\n/);
+    let title='',firstX=0,deltaX=0,yFactor=1,nPoints=0,inData=false;
+    const dataLines=[];
+    for (const l of lines){
+      if (l.startsWith('##')){
+        const m=l.match(/##([^=]+)=(.*)/); if(!m) continue;
+        const k=m[1].trim().toUpperCase(),v=m[2].trim();
+        if (k==='TITLE') title=v.replace('Spectrum for Sample','').trim();
+        if (k==='FIRSTX') firstX=parseFloat(v);
+        if (k==='DELTAX') deltaX=parseFloat(v);
+        if (k==='YFACTOR') yFactor=parseFloat(v);
+        if (k==='NPOINTS') nPoints=parseInt(v);
+        if (k==='XYDATA') inData=true;
+      } else if (inData && l.trim()) dataLines.push(l.trim());
+    }
+    if (!title) continue;
+    const decoded=[]; for (const l of dataLines) decoded.push(...decodeDxLine(l));
+    const pts=Math.min(decoded.length,nPoints||decoded.length);
+    const wl=[],int=[];
+    for (let i=0;i<pts;i++){ wl.push(firstX+i*deltaX); int.push(decoded[i]*yFactor); }
+    if (wl.length) spectra.push({sampleNumber:title, wavelengths:wl, intensities:int});
+  }
+  return spectra;
+}
+function decodeDxLine(line){
+  const parts=line.split(/\s+/).filter(p=>p); if (!parts.length) return [];
+  const values=[];
+  for (let i=1;i<parts.length;i++){
+    let tok=parts[i]; const first=tok[0];
+    if ('+-0123456789'.indexOf(first)>=0){ values.push(parseFloat(tok)); continue; }
+    if ('@ABCDEFGHIabcdefghi'.indexOf(first)>=0){
+      const digit='@ABCDEFGHIabcdefghi'.indexOf(first)%10;
+      const sign='abcdefghi'.indexOf(first)>=0?-1:1;
+      tok=String(digit)+tok.substring(1);
+      values.push(sign*parseFloat(tok));
+    } else if ('%JKLMNOPQRjklmnopqr'.indexOf(first)>=0){
+      const digit='%JKLMNOPQRjklmnopqr'.indexOf(first)%10;
+      const sign='jklmnopqr'.indexOf(first)>=0?-1:1;
+      tok=String(digit)+tok.substring(1);
+      const diff=sign*parseFloat(tok);
+      values.push((values[values.length-1]||0)+diff);
+    }
+  }
+  return values;
+}
+</script>
+</body>
+</html>

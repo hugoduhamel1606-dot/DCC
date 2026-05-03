@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DCC — Projects</title>
+<link rel="stylesheet" href="/shared/style.css"/>
+<style>
+.projects-wrap { flex:1;overflow:auto;padding:16px;background:var(--bg); }
+.proj-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px; }
+
+.proj-card { background:var(--white);border:1px solid var(--border);border-radius:var(--r2);padding:16px 14px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden; }
+.proj-card::after { content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--c,var(--blue)); }
+.proj-card:hover { border-color:var(--blue);box-shadow:var(--shadow); }
+.proj-card.sel { border-color:var(--blue);background:var(--blue-light);box-shadow:0 0 0 2px rgba(30,95,168,0.15); }
+.proj-card-icon { font-size:20px;margin-bottom:8px;display:block; }
+.proj-card-name { font-size:12px;font-weight:500;color:var(--text);margin-bottom:2px;line-height:1.3; }
+.proj-card-sub  { font-size:11px;color:var(--text3);margin-bottom:8px; }
+.proj-card-tags { display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px; }
+.proj-card-meta { font-size:10px;color:var(--text3); }
+.add-card { background:var(--white);border:1px dashed var(--border2);border-radius:var(--r2);padding:16px 14px;cursor:pointer;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:130px;color:var(--text3);gap:6px; }
+.add-card:hover { border-color:var(--blue);color:var(--blue);background:var(--blue-light); }
+.add-card-plus { font-size:24px;font-weight:300; }
+.add-card-lbl  { font-size:12px; }
+
+/* Detail panel */
+#detail-panel { position:fixed;right:0;top:40px;bottom:0;width:360px;background:var(--white);border-left:1px solid var(--border);box-shadow:-2px 0 8px rgba(0,0,0,0.08);transform:translateX(100%);transition:transform 0.25s ease;z-index:50;display:flex;flex-direction:column; }
+#detail-panel.on { transform:translateX(0); }
+.dp-hd { padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0; }
+.dp-title { font-size:13px;font-weight:500; }
+.dp-tabs { display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0; }
+.dp-tab { flex:1;text-align:center;padding:7px;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.12s; }
+.dp-tab:hover { color:var(--text); }
+.dp-tab.on { color:var(--blue);border-bottom-color:var(--blue); }
+.dp-body { flex:1;overflow-y:auto; }
+.dp-row { display:flex;justify-content:space-between;align-items:flex-start;padding:7px 14px;border-bottom:1px solid var(--bg2);font-size:12px; }
+.dp-key { color:var(--text3);flex-shrink:0;margin-right:8px; }
+.dp-val { color:var(--text);text-align:right;max-width:200px;word-break:break-word; }
+.dp-footer { padding:10px 14px;border-top:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;gap:6px;flex-shrink:0; }
+.dp-footer .btn { justify-content:center; }
+
+/* Activity */
+.act-item { padding:10px 14px;border-bottom:1px solid var(--bg2);display:flex;gap:10px; }
+.act-dot { width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:4px; }
+.act-dot.save   { background:var(--green); }
+.act-dot.delete { background:var(--red); }
+.act-action { font-size:12px;color:var(--text); }
+.act-meta   { font-size:11px;color:var(--text3);margin-top:2px; }
+.act-empty  { text-align:center;color:var(--text3);font-size:12px;padding:30px; }
+
+/* Versions */
+.ver-item { padding:10px 14px;border-bottom:1px solid var(--bg2); }
+.ver-hd   { display:flex;align-items:center;justify-content:space-between;margin-bottom:3px; }
+.ver-name { font-size:12px;font-weight:500;color:var(--text); }
+.ver-meta { font-size:11px;color:var(--text3); }
+.ver-acts { display:flex;gap:3px; }
+.ver-empty { text-align:center;color:var(--text3);font-size:12px;padding:30px; }
+.ver-name-input { font-size:12px;font-weight:500;border:1px solid var(--blue);border-radius:var(--r);padding:2px 6px;outline:none;width:160px; }
+
+.search-bar { display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:var(--r);background:var(--white);padding:5px 9px; }
+.search-bar input { border:none;outline:none;background:none;font-size:12px;color:var(--text);width:180px; }
+.search-bar input::placeholder { color:var(--text3); }
+</style>
+</head>
+<body>
+<div id="topbar-mount"></div>
+<div class="page-body">
+  <div class="toolbar">
+    <span style="font-size:12px;font-weight:500;color:var(--text2);">My projects</span>
+    <div style="margin-left:auto;">
+      <div class="search-bar">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="search" placeholder="Rechercher..."/>
+      </div>
+    </div>
+  </div>
+  <div class="projects-wrap">
+    <div class="proj-grid" id="proj-grid">
+      <div style="color:var(--text3);font-size:12px;padding:10px;">Chargement...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail panel -->
+<div id="detail-panel">
+  <div class="dp-hd">
+    <div class="dp-title" id="dp-name">Project</div>
+    <button class="btn btn-icon" id="dp-close" style="font-size:11px;">&#x2715;</button>
+  </div>
+  <div class="dp-tabs">
+    <div class="dp-tab on"  data-dt="info">Info</div>
+    <div class="dp-tab"     data-dt="activity">Historique</div>
+    <div class="dp-tab"     data-dt="versions">Versions</div>
+  </div>
+  <!-- INFO -->
+  <div id="dt-info" class="dp-body"></div>
+  <!-- ACTIVITY -->
+  <div id="dt-activity" class="dp-body" style="display:none;">
+    <div id="act-list"><div class="act-empty">Aucune activité.</div></div>
+  </div>
+  <!-- VERSIONS -->
+  <div id="dt-versions" class="dp-body" style="display:none;">
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;">
+      <input type="text" id="save-name" placeholder="Nom de la sauvegarde..." style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:var(--r);font-size:12px;outline:none;"/>
+      <button class="btn primary btn-sm" id="btn-save-ver">Sauvegarder</button>
+    </div>
+    <div id="ver-list"><div class="ver-empty">Aucune version.</div></div>
+  </div>
+  <div class="dp-footer">
+    <button class="btn primary" id="dp-open">Ouvrir ce projet &#x2192;</button>
+    <div style="display:flex;gap:6px;">
+      <button class="btn" style="flex:1;" id="dp-share">Ajouter un utilisateur</button>
+      <button class="btn danger" style="flex:1;" id="dp-delete">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div class="overlay" id="m-new">
+  <div class="modal">
+    <div class="modal-title">New project</div>
+    <div class="field"><label>Project name *</label><input type="text" id="np-name" placeholder="Ex: Soils LIBS 2025"/></div>
+    <div class="modal-row">
+      <div class="field"><label>Instrument *</label><select id="np-inst"><option>LIBS</option><option>NIR</option></select></div>
+      <div class="field"><label>Product type</label><select id="np-type"><option>Soils</option><option>Petioles</option><option>Phosphore Olsen</option><option>Fertilisant</option><option>Other</option></select></div>
+    </div>
+    <div class="field"><label>Description</label><textarea id="np-desc" rows="2" placeholder="Optional..."></textarea></div>
+    <div class="modal-actions"><button class="btn-cancel" id="np-cancel">Cancel</button><button class="btn-ok" id="np-ok">Create project</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="m-del">
+  <div class="modal">
+    <div class="modal-title">Delete project?</div>
+    <p style="color:var(--text2);font-size:12px;margin-bottom:14px;line-height:1.6;">Action <strong style="color:var(--red);">irreversible</strong>. All data will be deleted.</p>
+    <div class="field"><label>Type the project name to confirm</label><input type="text" id="del-confirm" placeholder="Project name..."/></div>
+    <div class="modal-actions"><button class="btn-cancel" id="del-cancel">Cancel</button><button class="btn-ok red" id="del-ok">Delete</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="m-share">
+  <div class="modal">
+    <div class="modal-title">Add user to project</div>
+    <div class="field"><label>Email</label><input type="email" id="share-email" placeholder="prenom.nom@dubernet.com"/></div>
+    <div class="modal-actions"><button class="btn-cancel" id="share-cancel">Cancel</button><button class="btn-ok" id="share-ok">Add</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="m-restore">
+  <div class="modal">
+    <div class="modal-title">Restaurer cette version ?</div>
+    <p style="color:var(--text2);font-size:12px;margin-bottom:14px;line-height:1.6;">Une sauvegarde automatique sera créée avant la restauration.</p>
+    <div class="modal-actions"><button class="btn-cancel" id="restore-cancel">Annuler</button><button class="btn-ok" id="restore-ok">Restaurer</button></div>
+  </div>
+</div>
+
+<script type="module">
+import { auth, db, requireAuth, setupLogout, fillTopbarUser, toast, showModal, hideModal } from '/shared/auth.js';
+import { renderTopbar } from '/shared/topbar.js';
+import { collection, doc, addDoc, updateDoc, deleteDoc,
+         query, where, orderBy, limit, getDocs, onSnapshot,
+         serverTimestamp, arrayUnion, Timestamp }
+  from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+function sanitize(s){if(s==null)return'—';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function validateProjectName(n){return n&&n.trim().length>0&&n.length<=100;}
+function validateEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e));}
+document.getElementById('topbar-mount').innerHTML = renderTopbar('projects');
+setupLogout('btn-logout');
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
+
+const COLORS = {
+  LIBS:{ Soils:'#2D6A4F', Petioles:'#52B788', 'Phosphore Olsen':'#C27803', Fertilisant:'#9D4EDD', Other:'#1e5fa8' },
+  NIR: { Soils:'#1D3557', Petioles:'#2196F3', 'Phosphore Olsen':'#E91E63', Fertilisant:'#FF5722', Other:'#607D8B' }
+};
+const ICONS = { Soils:'&#9651;', Petioles:'&#9670;', 'Phosphore Olsen':'&#9679;', Fertilisant:'&#9632;', Other:'&#9643;' };
+
+let projects=[], selProj=null, user=null, profile=null, restoreTarget=null;
+
+function tsStr(t) {
+  if(!t) return '—';
+  const d = t instanceof Timestamp ? t.toDate() : new Date((t.seconds||0)*1000);
+  return d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function logAct(projectId, action, type='edit') {
+  await addDoc(collection(db,'projects',projectId,'activity'), {
+    action, type,
+    userName:  profile.displayName || user.email,
+    userEmail: user.email,
+    createdAt: serverTimestamp()
+  });
+}
+
+// ── Auth + subscribe ───────────────────────────────────────────
+requireAuth(async (u,p) => {
+  user=u; profile=p; fillTopbarUser(p);
+  // Query 1: projets où l'uid est dans sharedWith
+  const q1=query(collection(db,'projects'),where('sharedWith','array-contains',u.uid));
+  // Query 2: projets partagés par email (pour les utilisateurs invités)
+  const q2=query(collection(db,'projects'),where('sharedEmails','array-contains',u.email));
+
+  function applySnap(snap){
+    snap.docs.forEach(d=>{
+      const existing=projects.findIndex(p=>p.id===d.id);
+      if(existing>=0) projects[existing]={id:d.id,...d.data()};
+      else projects.push({id:d.id,...d.data()});
+    });
+    renderGrid();
+    if(selProj){ selProj=projects.find(p=>p.id===selProj.id)||null; renderInfo(); }
+  }
+
+  onSnapshot(q1, applySnap, e=>console.warn('q1',e));
+  onSnapshot(q2, async snap=>{
+    // Pour chaque projet partagé par email, ajouter l'uid dans sharedWith
+    for(const d of snap.docs){
+      const data=d.data();
+      if(!data.sharedWith?.includes(u.uid)){
+        try{
+          await updateDoc(doc(db,'projects',d.id),{sharedWith:arrayUnion(u.uid)});
+        }catch{}
+      }
+    }
+    applySnap(snap);
+  }, e=>console.warn('q2',e));
+});
+
+// ── Grid ───────────────────────────────────────────────────────
+function renderGrid(){
+  const search=document.getElementById('search').value.toLowerCase();
+  const grid=document.getElementById('proj-grid');
+  const list=projects
+    .filter(p=>!search||[p.name,p.instrument,p.productType].some(v=>v?.toLowerCase().includes(search)))
+    .sort((a,b)=>(a.instrument||'').localeCompare(b.instrument||'')||(a.productType||'').localeCompare(b.productType||''));
+  const stTag=s=>{if(s==='Calibration Completed')return'<span class="tag tag-green">Calibration Completed</span>';if(s==='In Progress')return'<span class="tag tag-orange">In Progress</span>';return'<span class="tag tag-gray">New</span>';};
+  grid.innerHTML=list.map(p=>`
+    <div class="proj-card${selProj?.id===p.id?' sel':''}" style="--c:${sanitize(p.color||'#1e5fa8')}" data-id="${sanitize(p.id)}">
+      <span class="proj-card-icon">${p.icon||'&#9632;'}</span>
+      <div class="proj-card-name">${sanitize(p.name)}</div>
+      <div class="proj-card-sub">${sanitize(p.productType||'')}</div>
+      <div class="proj-card-tags"><span class="tag tag-blue">${sanitize(p.instrument||'')}</span>${stTag(p.status)}</div>
+      <div class="proj-card-meta">${parseInt(p.numberOfSamples)||0} samples &middot; ${parseInt(p.numberOfModels)||0} models</div>
+    </div>
+  `).join('')+`<div class="add-card" id="add-btn"><div class="add-card-plus">+</div><div class="add-card-lbl">New project</div></div>`;
+  grid.querySelectorAll('[data-id]').forEach(c=>c.addEventListener('click',()=>openDetail(c.dataset.id)));
+  document.getElementById('add-btn')?.addEventListener('click',()=>{document.getElementById('np-name').value='';showModal('m-new');});
+}
+document.getElementById('search').addEventListener('input',renderGrid);
+
+// ── Detail panel ───────────────────────────────────────────────
+function openDetail(id){
+  selProj=projects.find(p=>p.id===id)||null;
+  renderGrid(); if(!selProj)return;
+  renderInfo(); switchTab('info');
+  document.getElementById('detail-panel').classList.add('on');
+}
+
+function renderInfo(){
+  if(!selProj)return;
+  const p=selProj;
+  document.getElementById('dp-name').textContent=p.name;
+  // Cacher Supprimer si pas le créateur
+  const delBtn=document.getElementById('dp-delete');
+  if(delBtn) delBtn.style.display=(p.createdBy===user?.uid)?'':'none';
+  document.getElementById('dt-info').innerHTML=[
+    ['Project name',  sanitize(p.name)],
+    ['Instrument',    sanitize(p.instrument)],
+    ['Product type',  sanitize(p.productType)],
+    ['Status',        sanitize(p.status||'New')],
+    ['Parameters',    parseInt(p.numberOfParameters)||0],
+    ['Samples',       parseInt(p.numberOfSamples)||0],
+    ['Models',        parseInt(p.numberOfModels)||0],
+    ['Created',       sanitize(tsStr(p.createdAt))],
+    ['Created by',    sanitize(p.createdByName||'—')],
+    ['Last modified', sanitize(tsStr(p.lastModifiedAt))],
+    ['Modified by',   sanitize(p.lastModifiedByName||p.lastModifiedBy||'—')],
+    ['Description',   sanitize(p.description||'—')],
+  ].map(([k,v])=>`<div class="dp-row"><span class="dp-key">${k}</span><span class="dp-val">${v}</span></div>`).join('');
+}
+
+// ── Tabs ───────────────────────────────────────────────────────
+document.querySelectorAll('.dp-tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.dt)));
+
+function switchTab(tab){
+  document.querySelectorAll('.dp-tab').forEach(t=>t.classList.toggle('on',t.dataset.dt===tab));
+  document.getElementById('dt-info').style.display     = tab==='info'     ? 'block':'none';
+  document.getElementById('dt-activity').style.display = tab==='activity' ? 'block':'none';
+  document.getElementById('dt-versions').style.display = tab==='versions' ? 'block':'none';
+  if(tab==='activity'&&selProj) loadActivity();
+  if(tab==='versions'&&selProj) loadVersions();
+}
+
+// ── Activity ───────────────────────────────────────────────────
+async function loadActivity(){
+  const el=document.getElementById('act-list');
+  el.innerHTML='<div class="act-empty">Chargement...</div>';
+  try{
+    const snap=await getDocs(query(collection(db,'projects',selProj.id,'activity'),orderBy('createdAt','desc'),limit(50)));
+    if(snap.empty){el.innerHTML='<div class="act-empty">Aucune activité enregistrée.</div>';return;}
+    el.innerHTML=snap.docs.map(d=>{
+      const a=d.data();
+      const dotCls=a.type==='save'?'save':a.type==='delete'?'delete':'';
+      return`<div class="act-item">
+        <div class="act-dot ${dotCls}"></div>
+        <div><div class="act-action">${sanitize(a.action)}</div><div class="act-meta">${sanitize(a.userName)} &middot; ${sanitize(tsStr(a.createdAt))}</div></div>
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<div class="act-empty">Erreur.</div>';}
+}
+
+// ── Versions ───────────────────────────────────────────────────
+async function loadVersions(){
+  const el=document.getElementById('ver-list');
+  el.innerHTML='<div class="ver-empty">Chargement...</div>';
+  try{
+    const snap=await getDocs(query(collection(db,'projects',selProj.id,'versions'),orderBy('createdAt','desc'),limit(20)));
+    if(snap.empty){el.innerHTML='<div class="ver-empty">Aucune version sauvegardée.<br/>Utilisez le bouton <strong>Sauvegarder</strong>.</div>';return;}
+    el.innerHTML=snap.docs.map(d=>{
+      const v=d.data();
+      const safeId=sanitize(d.id);
+      const safeName=sanitize(v.name);
+      return`<div class="ver-item">
+        <div class="ver-hd">
+          <div class="ver-name" id="vn-${safeId}">${safeName}</div>
+          <div class="ver-acts">
+            <button class="btn btn-sm btn-icon" title="Renommer" onclick="startRename('${safeId}','${safeName}')">&#x270F;</button>
+            <button class="btn btn-sm btn-icon" title="Restaurer" onclick="confirmRestore('${safeId}','${safeName}')">&#x21A9;</button>
+            <button class="btn btn-sm btn-icon danger" title="Supprimer" onclick="delVer('${safeId}')">&#x2715;</button>
+          </div>
+        </div>
+        <div class="ver-meta">${sanitize(tsStr(v.createdAt))} &middot; ${sanitize(v.createdByName||'—')}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">${parseInt(v.samples)||0} samples &middot; ${parseInt(v.models)||0} models</div>
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<div class="ver-empty">Erreur.</div>';}
+}
+
+// Save version
+document.getElementById('btn-save-ver').addEventListener('click',async()=>{
+  if(!selProj)return;
+  const nameIn=document.getElementById('save-name');
+  const name=nameIn.value.trim()||`Version ${new Date().toLocaleDateString('fr-FR')} ${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
+  try{
+    await addDoc(collection(db,'projects',selProj.id,'versions'),{
+      name, createdAt:serverTimestamp(), createdBy:user.uid,
+      createdByName:profile.displayName||user.email,
+      samples:selProj.numberOfSamples||0, models:selProj.numberOfModels||0,
+      projectData:{name:selProj.name,instrument:selProj.instrument,productType:selProj.productType,status:selProj.status,description:selProj.description||''}
+    });
+    await logAct(selProj.id,`Version sauvegardée : "${name}"`,'save');
+    await updateDoc(doc(db,'projects',selProj.id),{lastModifiedAt:serverTimestamp(),lastModifiedBy:user.uid,lastModifiedByName:profile.displayName||user.email});
+    nameIn.value='';
+    toast(`"${name}" sauvegardée`,'success');
+    loadVersions();
+  }catch(e){toast('Erreur: '+e.message,'error');}
+});
+
+// Rename
+window.startRename=(vid,currentName)=>{
+  const el=document.getElementById('vn-'+vid);
+  if(!el)return;
+  const inp=document.createElement('input');
+  inp.className='ver-name-input';inp.value=currentName;
+  el.replaceWith(inp);inp.focus();inp.select();
+  const save=async()=>{
+    const nname=inp.value.trim()||currentName;
+    try{
+      await updateDoc(doc(db,'projects',selProj.id,'versions',vid),{name:nname});
+      await logAct(selProj.id,`Version renommée : "${currentName}" → "${nname}"`,'edit');
+      toast('Renommée','success');loadVersions();
+    }catch(e){toast('Erreur','error');}
+  };
+  inp.addEventListener('blur',save);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')save();if(e.key==='Escape')loadVersions();});
+};
+
+// Restore
+window.confirmRestore=(vid,vname)=>{restoreTarget={vid,vname};showModal('m-restore');};
+document.getElementById('restore-ok').addEventListener('click',async()=>{
+  if(!restoreTarget||!selProj)return;
+  hideModal('m-restore');
+  try{
+    // Auto-save before restore
+    await addDoc(collection(db,'projects',selProj.id,'versions'),{
+      name:`Auto-save avant restauration — ${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`,
+      createdAt:serverTimestamp(),createdBy:user.uid,createdByName:profile.displayName||user.email,
+      samples:selProj.numberOfSamples||0,models:selProj.numberOfModels||0,
+      projectData:{name:selProj.name,status:selProj.status}
+    });
+    await logAct(selProj.id,`Version restaurée : "${restoreTarget.vname}"`,'save');
+    await updateDoc(doc(db,'projects',selProj.id),{lastModifiedAt:serverTimestamp(),lastModifiedBy:user.uid,lastModifiedByName:profile.displayName||user.email});
+    restoreTarget=null;
+    toast('Version restaurée. Sauvegarde automatique créée.','success');
+    loadVersions();loadActivity();
+  }catch(e){toast('Erreur: '+e.message,'error');}
+});
+document.getElementById('restore-cancel').addEventListener('click',()=>{hideModal('m-restore');restoreTarget=null;});
+
+// Delete version
+window.delVer=async vid=>{
+  if(!selProj)return;
+  try{
+    await deleteDoc(doc(db,'projects',selProj.id,'versions',vid));
+    await logAct(selProj.id,'Version supprimée','delete');
+    toast('Version supprimée','warn');loadVersions();
+  }catch(e){toast('Erreur','error');}
+};
+
+// ── Panel actions ──────────────────────────────────────────────
+document.getElementById('dp-close').addEventListener('click',()=>{document.getElementById('detail-panel').classList.remove('on');selProj=null;renderGrid();});
+
+document.getElementById('dp-open').addEventListener('click',async()=>{
+  if(!selProj)return;
+  await logAct(selProj.id,'Projet ouvert','edit');
+  await updateDoc(doc(db,'projects',selProj.id),{lastModifiedAt:serverTimestamp(),lastModifiedBy:user.uid,lastModifiedByName:profile.displayName||user.email});
+  sessionStorage.setItem('dcc_project_'+(user?.uid||'x'),JSON.stringify({id:selProj.id,name:selProj.name}));
+  window.location.href='/samples/';
+});
+
+document.getElementById('dp-delete').addEventListener('click',()=>{document.getElementById('del-confirm').value='';showModal('m-del');});
+document.getElementById('dp-share').addEventListener('click',()=>{document.getElementById('share-email').value='';showModal('m-share');});
+
+// Create
+document.getElementById('np-ok').addEventListener('click',async()=>{
+  const name=document.getElementById('np-name').value.trim();
+  if(!name){toast('Project name required','error');return;}
+  if(!validateProjectName(name)){toast('Nom invalide (max 100 caractères, pas de HTML)','error');return;}
+  const inst=document.getElementById('np-inst').value;
+  const type=document.getElementById('np-type').value;
+  const desc=document.getElementById('np-desc').value.trim();
+  try{
+    const ref=await addDoc(collection(db,'projects'),{
+      name,instrument:inst,productType:type,description:desc,status:'New',
+      createdBy:user.uid,createdByName:profile.displayName||user.email,
+      createdAt:serverTimestamp(),lastModifiedAt:serverTimestamp(),
+      lastModifiedBy:user.uid,lastModifiedByName:profile.displayName||user.email,
+      sharedWith:[user.uid],numberOfSamples:0,numberOfModels:0,numberOfParameters:0,
+      color:(COLORS[inst]||{})[type]||'#1e5fa8',icon:ICONS[type]||'&#9632;'
+    });
+    await addDoc(collection(db,'projects',ref.id,'activity'),{action:`Projet créé`,type:'edit',userName:profile.displayName||user.email,userEmail:user.email,createdAt:serverTimestamp()});
+    hideModal('m-new');toast('Project created','success');
+  }catch(e){toast('Error: '+e.message,'error');}
+});
+document.getElementById('np-cancel').addEventListener('click',()=>hideModal('m-new'));
+
+// Delete
+document.getElementById('del-ok').addEventListener('click',async()=>{
+  if(document.getElementById('del-confirm').value.trim()!==selProj?.name){toast('Name does not match','error');return;}
+  try{
+    await deleteDoc(doc(db,'projects',selProj.id));
+    selProj=null;document.getElementById('detail-panel').classList.remove('on');
+    hideModal('m-del');toast('Project deleted','warn');
+  }catch(e){toast('Error: '+e.message,'error');}
+});
+document.getElementById('del-cancel').addEventListener('click',()=>hideModal('m-del'));
+
+// Share
+document.getElementById('share-ok').addEventListener('click',async()=>{
+  const email=document.getElementById('share-email').value.trim().toLowerCase();
+  if(!email||!selProj)return;
+  if(!validateEmail(email)){toast('Adresse email invalide','error');return;}
+  // On ajoute l'email dans sharedEmails. La query q2 permettra à l'invité de voir le projet.
+  await updateDoc(doc(db,'projects',selProj.id),{sharedEmails:arrayUnion(email)});
+  await logAct(selProj.id,`Partagé avec ${email}`,'edit');
+  hideModal('m-share');toast(`Partagé avec ${email}`,'success');
+});
+document.getElementById('share-cancel').addEventListener('click',()=>hideModal('m-share'));
+</script>
+</body>
+</html>

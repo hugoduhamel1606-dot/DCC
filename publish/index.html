@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DCC — Publish</title>
+<link rel="stylesheet" href="/shared/style.css"/>
+<style>
+.proj-banner{background:var(--blue);color:#fff;font-size:12px;padding:5px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.proj-banner a{color:rgba(255,255,255,0.75);text-decoration:none;font-size:11px;}
+.pub-layout{flex:1;overflow:hidden;display:flex;}
+.pub-main{flex:1;overflow:auto;padding:14px;border-right:1px solid var(--border);}
+.pub-side{width:250px;background:var(--bg2);overflow:auto;padding:14px;flex-shrink:0;}
+.pub-sec-title{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.radio-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--white);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all 0.12s;margin-bottom:5px;font-size:12px;}
+.radio-row:hover{border-color:var(--blue);}
+.radio-row.sel{border-color:var(--blue);background:var(--blue-light);}
+.radio-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.radio-row.sel .radio-dot{border-color:var(--blue);background:var(--blue);}
+.radio-row.sel .radio-dot::after{content:'';width:4px;height:4px;background:#fff;border-radius:50%;}
+.model-info{flex:1;}
+.model-info-name{font-size:12px;font-weight:500;}
+.model-info-sub{font-size:11px;color:var(--text3);}
+.model-stats{text-align:right;font-size:11px;color:var(--text2);}
+</style>
+</head>
+<body>
+<div id="topbar-mount"></div>
+<div class="page-body">
+  <div class="proj-banner">
+    <a href="/projects/">&#8592; Projects</a>
+    <span id="proj-name">No project</span>
+  </div>
+  <div class="toolbar">
+    <span style="font-size:12px;color:var(--text2);">Publish models and calibration reports</span>
+  </div>
+  <div class="pub-layout">
+    <div class="pub-main">
+      <div style="margin-bottom:20px;">
+        <div class="pub-sec-title">Quantitative models</div>
+        <div id="pub-models">
+          <div class="radio-row"><div class="radio-dot"></div><span style="color:var(--text3);">No model calculated</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="pub-sec-title">Outlier models</div>
+        <div id="pub-outliers">
+          <div class="radio-row"><div class="radio-dot"></div><span style="color:var(--text3);">No outlier model — to produce a quantitative model without an outlier model</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="pub-side">
+      <div class="pub-sec-title" style="margin-bottom:10px;">Publish model</div>
+      <div class="pub-sec-title" style="font-size:10px;margin-bottom:6px;">Select file type</div>
+      <div id="pub-format" style="margin-bottom:12px;">
+        <div class="radio-row sel" data-fmt="foss"><div class="radio-dot"></div>FossManager</div>
+        <div class="radio-row" data-fmt="isi"><div class="radio-dot"></div>ISI format</div>
+        <div class="radio-row" data-fmt="ppm"><div class="radio-dot"></div>Protected PM</div>
+      </div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-bottom:12px;" id="btn-pub-model">Publish model</button>
+      <div class="divider"></div>
+      <div class="pub-sec-title" style="margin-bottom:8px;">Publish report</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;">
+        <label class="check-row"><input type="checkbox" checked> Model summary</label>
+        <label class="check-row"><input type="checkbox" checked> Performance calibration</label>
+        <label class="check-row"><input type="checkbox" checked> Performance validation</label>
+        <label class="check-row"><input type="checkbox" checked> Samples used in calibration</label>
+        <label class="check-row"><input type="checkbox" checked> Samples used in validation</label>
+      </div>
+      <button class="btn" style="width:100%;justify-content:center;" id="btn-pub-report">Publish report</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { auth, db, requireAuth, setupLogout, fillTopbarUser, toast } from '/shared/auth.js';
+import { renderTopbar } from '/shared/topbar.js';
+import { collection, doc, getDocs, updateDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+document.getElementById('topbar-mount').innerHTML = renderTopbar('publish');
+setupLogout('btn-logout');
+
+let S = { user:null, project:null, models:[], selModel:null };
+
+requireAuth(async (user, profile) => {
+  S.user = user;
+  fillTopbarUser(profile);
+  const proj = JSON.parse(sessionStorage.getItem('dcc_project')||'null');
+  if (!proj) { document.getElementById('proj-name').textContent='No project'; return; }
+  S.project = proj;
+  document.getElementById('proj-name').textContent = proj.name;
+  await loadModels(proj.id);
+});
+
+async function loadModels(projectId) {
+  try {
+    const snap = await getDocs(collection(db,'projects',projectId,'models'));
+    S.models = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderPublishList();
+  } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+function renderPublishList() {
+  const el  = document.getElementById('pub-models');
+  const done = S.models.filter(m => m.status==='Calculated'||m.status==='Published');
+  if (!done.length) {
+    el.innerHTML = '<div class="radio-row"><div class="radio-dot"></div><span style="color:var(--text3);">No model calculated</span></div>';
+    return;
+  }
+  const fmt = v => v!=null ? Number(v).toFixed(4) : '—';
+  el.innerHTML = done.map(m => `
+    <div class="radio-row${S.selModel?.id===m.id?' sel':''}" data-pmid="${m.id}">
+      <div class="radio-dot"></div>
+      <div class="model-info">
+        <div class="model-info-name">${m.name}</div>
+        <div class="model-info-sub">${m.parameter} &middot; ${m.method} &middot; ${m.calibratedF||'?'} factors${m.status==='Published'?' &middot; <strong style="color:var(--blue)">Published</strong>':''}</div>
+      </div>
+      <div class="model-stats">
+        RMSEP(cal): <strong>${fmt(m.rmsepCal)}</strong><br>
+        RMSEP(val): <strong>${fmt(m.rmsepVal)}</strong><br>
+        R²: <strong>${fmt(m.r2)}</strong>
+      </div>
+    </div>
+  `).join('');
+  el.querySelectorAll('[data-pmid]').forEach(r => r.addEventListener('click', () => {
+    el.querySelectorAll('.radio-row').forEach(x => x.classList.remove('sel'));
+    r.classList.add('sel');
+    S.selModel = S.models.find(m => m.id===r.dataset.pmid) || null;
+  }));
+}
+
+document.querySelectorAll('#pub-format .radio-row').forEach(r => r.addEventListener('click', () => {
+  document.querySelectorAll('#pub-format .radio-row').forEach(x=>x.classList.remove('sel'));
+  r.classList.add('sel');
+}));
+
+document.getElementById('btn-pub-model').addEventListener('click', async () => {
+  const model = S.selModel;
+  if (!model) { toast('Select a model first','warn'); return; }
+  try {
+    await updateDoc(doc(db,'projects',S.project.id,'models',model.id), { status:'Published', publishedAt:serverTimestamp() });
+    model.status = 'Published';
+    renderPublishList();
+    toast(`Model ${model.name} published`,'success');
+  } catch(e) { toast('Error: '+e.message,'error'); }
+});
+
+document.getElementById('btn-pub-report').addEventListener('click', () => {
+  const model = S.selModel;
+  if (!model) { toast('Select a model first','warn'); return; }
+  generateReport(model);
+});
+
+function generateReport(m) {
+  const now = new Date().toLocaleDateString('fr-FR');
+  const fmt = v => v!=null ? Number(v).toFixed(4) : '—';
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/>
+<title>DCC — Calibration Report: ${m.name}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;color:#222;padding:0}
+.w{max-width:860px;margin:0 auto;padding:40px}
+.hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1e5fa8;padding-bottom:14px;margin-bottom:24px}
+.brand{font-size:30px;font-weight:700;letter-spacing:-1px;color:#1e5fa8}.brand-sub{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+.hd-r{text-align:right;font-size:12px;color:#666}
+h2{font-size:14px;font-weight:600;color:#1e5fa8;margin:20px 0 10px;border-bottom:1px solid #e0e7ef;padding-bottom:5px}
+.stats{display:flex;border:1px solid #e0e7ef;border-radius:4px;overflow:hidden;margin-bottom:14px}
+.st{flex:1;padding:12px;text-align:center;border-right:1px solid #e0e7ef}.st:last-child{border-right:none}
+.st-v{font-size:20px;font-weight:700;color:#1e5fa8}.st-l{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+.info{display:grid;grid-template-columns:1fr 1fr;border:1px solid #e0e7ef;border-radius:4px;overflow:hidden;margin-bottom:14px}
+.ir{display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #f0f0f0;font-size:12px}.ir:nth-child(odd){background:#f8f9fa}
+.ik{color:#888}.iv{font-weight:500}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px}
+th{background:#1e5fa8;color:#fff;padding:7px 10px;text-align:left;font-weight:500}
+td{padding:6px 10px;border-bottom:1px solid #f0f0f0}tr:nth-child(even)td{background:#f8f9fa}
+.ft{margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:11px;color:#aaa;display:flex;justify-content:space-between}
+</style></head><body><div class="w">
+<div class="hd"><div><div class="brand">DCC</div><div class="brand-sub">Data Calculator Calibration &mdash; duhamelexperience.fr</div></div>
+<div class="hd-r"><div>Calibration Report</div><div>${m.name}</div><div>${now}</div></div></div>
+<h2>Summary</h2>
+<div class="stats">
+<div class="st"><div class="st-v">${m.method}</div><div class="st-l">Method</div></div>
+<div class="st"><div class="st-v">${m.calibratedF||'—'}</div><div class="st-l">Factors</div></div>
+<div class="st"><div class="st-v">${fmt(m.r2)}</div><div class="st-l">R²</div></div>
+<div class="st"><div class="st-v">${fmt(m.rmsepCal)}</div><div class="st-l">RMSEP(cal)</div></div>
+<div class="st"><div class="st-v">${fmt(m.rmsepVal)||'—'}</div><div class="st-l">RMSEP(val)</div></div>
+</div>
+<h2>Model details</h2>
+<div class="info">
+${[['Model name',m.name],['Parameter',m.parameter||'—'],['Pretreatment',m.pre],['Slope',fmt(m.slope)],['Intercept',fmt(m.intercept)],['Bias',fmt(m.bias)],['N training',m.tSpNames?.length||'—'],['N validation',m.vSpNames?.length||'—'],['RMSEP(cross)',fmt(m.rmsepCross)],['Comment',m.comment||'—']].map(([k,v])=>`<div class="ir"><span class="ik">${k}</span><span class="iv">${v}</span></div>`).join('')}
+</div>
+${m.yt?.length?`<h2>Training data</h2><table><thead><tr><th>#</th><th>Sample</th><th>Measured</th><th>Predicted</th><th>Residual</th></tr></thead><tbody>
+${(m.tSpNames||[]).slice(0,100).map((sn,i)=>`<tr><td>${i+1}</td><td>${sn}</td><td>${(m.yt[i]||0).toFixed(3)}</td><td>${(m.pt[i]||0).toFixed(3)}</td><td>${((m.yt[i]||0)-(m.pt[i]||0)).toFixed(3)}</td></tr>`).join('')}
+</tbody></table>`:''}
+${m.yv?.length?`<h2>Validation data</h2><table><thead><tr><th>#</th><th>Sample</th><th>Measured</th><th>Predicted</th><th>Residual</th></tr></thead><tbody>
+${(m.vSpNames||[]).slice(0,100).map((sn,i)=>`<tr><td>${i+1}</td><td>${sn}</td><td>${(m.yv[i]||0).toFixed(3)}</td><td>${(m.pv[i]||0).toFixed(3)}</td><td>${((m.yv[i]||0)-(m.pv[i]||0)).toFixed(3)}</td></tr>`).join('')}
+</tbody></table>`:''}
+<div class="ft"><span>DCC &mdash; Data Calculator Calibration &mdash; duhamelexperience.fr</span><span>Generated ${new Date().toLocaleString('fr-FR')}</span></div>
+</div></body></html>`;
+  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'),{href:url,download:`DCC_Report_${m.name}_${now.replace(/\//g,'-')}.html`});
+  a.click(); URL.revokeObjectURL(url);
+  toast('Report downloaded','success');
+}
+</script>
+</body>
+</html>
